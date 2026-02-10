@@ -1,0 +1,165 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+venv/
+env/
+ENV/
+geo_env/
+.venv/
+*.venv/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# IPython
+profile_default/
+ipython_config.py
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Rope
+.ropeproject
+
+# mkdocs
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# pytype
+.pytype/
+
+# Coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Environments
+.env
+.env.local
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Editors
+*.swp
+*.swo
+*~
+.*.sw[a-z]
+*.bak
+*.tmp
+
+# Logs
+*.log
+logs/
+*.out
+
+# Model files and data (often large)
+*.pt
+*.pth
+*.h5
+*.hdf5
+*.ckpt
+*.pkl
+*.pickle
+*.joblib
+
+# Results and outputs
+results/
+outputs/
+checkpoints/
+runs/
+wandb/
+
+# Temporary files
+*.tmp
+.tmp/
+tmp/
+
+# Rust (for Aethelgard-X)
+target/
+Cargo.lock
+**/*.rs.bk
+
+# Compiled files
+*.o
+*.a
+*.lib
+*.dll
+*.dylib
+*.exe
+
+# JSON results (optional - uncomment if you want to ignore)
+# *.json
+# *_results.json
+
+# PNG outputs (optional - uncomment if you want to ignore)
+# *.png
+# *_plots.png

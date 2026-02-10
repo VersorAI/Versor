@@ -1,0 +1,24 @@
+# Versor: Foundational Theory of Structural Intelligence
+# Requirements for Reproducing Main Experiments, Scaling Benchmarks, and Kernel Optimization
+
+# Core Deep Learning
+torch>=2.1.0
+torchvision
+
+# Custom GPU Kernels
+triton>=2.1.0; platform_system == "Linux"
+# Note: apple-mlx is handled via separate environment for Mac users
+# mlx; platform_system == "Darwin" 
+
+# Numerical & Scientific Computing
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Visualization & Reporting
+matplotlib>=3.7.0
+json5
+
+# System & Development
+argparse
+typing-extensions
+tqdm
