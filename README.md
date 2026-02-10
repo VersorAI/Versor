@@ -157,17 +157,8 @@ Contributions are welcome! Please:
 See LICENSE file for details.
 
 ## 🔗 Resources
-
-- **Paper**: See `Paper/main.tex` for the full research paper
 - **Documentation**: Each task folder contains specific documentation
 - **Examples**: Browse `tasks/` for domain-specific implementations
-
-## ⚡ Performance Tips
-
-1. **CUDA**: Enable TF32 for faster training on Ampere+ GPUs
-2. **Compilation**: Use `torch.compile()` for 2-5x speedup (PyTorch 2.0+)
-3. **Batch Size**: Larger batches improve GPU utilization
-4. **Mixed Precision**: Consider using automatic mixed precision (AMP)
 
 ## 🐛 Troubleshooting
 
@@ -184,5 +175,3 @@ See LICENSE file for details.
 For questions or issues, please open a GitHub issue or contact the authors.
 
 ---
-
-**Happy Geometric Learning! 🎓✨**
