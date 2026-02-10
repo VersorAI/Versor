@@ -1,0 +1,419 @@
+{
+  "experiment": "variable_n_generalization",
+  "timestamp": "2026-01-30T07:13:29.677110",
+  "train_n": 5,
+  "test_ns": [
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "seeds": [
+    42,
+    123,
+    456
+  ],
+  "models": {
+    "Versor": {
+      "seeds": {
+        "42": {
+          "test_n": {
+            "3": {
+              "mse": 4.015939712524414,
+              "energy_drift_pct": 748.621826171875,
+              "success": true,
+              "error": null
+            },
+            "4": {
+              "mse": 3.3324062824249268,
+              "energy_drift_pct": 403.2371520996094,
+              "success": true,
+              "error": null
+            },
+            "5": {
+              "mse": 2.3462131023406982,
+              "energy_drift_pct": 335.6960754394531,
+              "success": true,
+              "error": null
+            },
+            "6": {
+              "mse": 7.043152809143066,
+              "energy_drift_pct": 269.9491271972656,
+              "success": true,
+              "error": null
+            },
+            "7": {
+              "mse": 5.736578941345215,
+              "energy_drift_pct": 214.48919677734375,
+              "success": true,
+              "error": null
+            }
+          }
+        },
+        "123": {
+          "test_n": {
+            "3": {
+              "mse": 1.9654414653778076,
+              "energy_drift_pct": 467.0670166015625,
+              "success": true,
+              "error": null
+            },
+            "4": {
+              "mse": 23.224348068237305,
+              "energy_drift_pct": 324.63623046875,
+              "success": true,
+              "error": null
+            },
+            "5": {
+              "mse": 3.9581429958343506,
+              "energy_drift_pct": 249.55181884765625,
+              "success": true,
+              "error": null
+            },
+            "6": {
+              "mse": 9.16629409790039,
+              "energy_drift_pct": 188.02615356445312,
+              "success": true,
+              "error": null
+            },
+            "7": {
+              "mse": 11.89636516571045,
+              "energy_drift_pct": 162.76220703125,
+              "success": true,
+              "error": null
+            }
+          }
+        },
+        "456": {
+          "test_n": {
+            "3": {
+              "mse": 15.577805519104004,
+              "energy_drift_pct": 963.0783081054688,
+              "success": true,
+              "error": null
+            },
+            "4": {
+              "mse": 14.41418743133545,
+              "energy_drift_pct": 531.4879150390625,
+              "success": true,
+              "error": null
+            },
+            "5": {
+              "mse": 4.002461910247803,
+              "energy_drift_pct": 459.98101806640625,
+              "success": true,
+              "error": null
+            },
+            "6": {
+              "mse": 6.285365104675293,
+              "energy_drift_pct": 270.22113037109375,
+              "success": true,
+              "error": null
+            },
+            "7": {
+              "mse": 12.241379737854004,
+              "energy_drift_pct": 244.6977081298828,
+              "success": true,
+              "error": null
+            }
+          }
+        }
+      }
+    },
+    "GNS": {
+      "seeds": {
+        "42": {
+          "test_n": {
+            "3": {
+              "mse": 3.4038736820220947,
+              "energy_drift_pct": 1524.8424072265625,
+              "success": true,
+              "error": null
+            },
+            "4": {
+              "mse": 2.377345561981201,
+              "energy_drift_pct": 800.8565673828125,
+              "success": true,
+              "error": null
+            },
+            "5": {
+              "mse": 2.794285297393799,
+              "energy_drift_pct": 481.2352294921875,
+              "success": true,
+              "error": null
+            },
+            "6": {
+              "mse": 5.309694290161133,
+              "energy_drift_pct": 582.1625366210938,
+              "success": true,
+              "error": null
+            },
+            "7": {
+              "mse": 6.543985843658447,
+              "energy_drift_pct": 682.1564331054688,
+              "success": true,
+              "error": null
+            }
+          }
+        },
+        "123": {
+          "test_n": {
+            "3": {
+              "mse": 13.280619621276855,
+              "energy_drift_pct": 798.1671142578125,
+              "success": true,
+              "error": null
+            },
+            "4": {
+              "mse": 2.9865875244140625,
+              "energy_drift_pct": 860.6361083984375,
+              "success": true,
+              "error": null
+            },
+            "5": {
+              "mse": 10.120577812194824,
+              "energy_drift_pct": 615.1721801757812,
+              "success": true,
+              "error": null
+            },
+            "6": {
+              "mse": 10.637553215026855,
+              "energy_drift_pct": 640.760986328125,
+              "success": true,
+              "error": null
+            },
+            "7": {
+              "mse": 6.165055751800537,
+              "energy_drift_pct": 554.8748779296875,
+              "success": true,
+              "error": null
+            }
+          }
+        },
+        "456": {
+          "test_n": {
+            "3": {
+              "mse": 0.9552105665206909,
+              "energy_drift_pct": 195.94619750976562,
+              "success": true,
+              "error": null
+            },
+            "4": {
+              "mse": 3.709379196166992,
+              "energy_drift_pct": 65.99038696289062,
+              "success": true,
+              "error": null
+            },
+            "5": {
+              "mse": 6.005112648010254,
+              "energy_drift_pct": 57.81559371948242,
+              "success": true,
+              "error": null
+            },
+            "6": {
+              "mse": 5.092467308044434,
+              "energy_drift_pct": 104.20735168457031,
+              "success": true,
+              "error": null
+            },
+            "7": {
+              "mse": 13.066375732421875,
+              "energy_drift_pct": 139.2733612060547,
+              "success": true,
+              "error": null
+            }
+          }
+        }
+      }
+    },
+    "Transformer": {
+      "seeds": {
+        "42": {
+          "test_n": {
+            "3": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x18 and 30x128)"
+            },
+            "4": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x24 and 30x128)"
+            },
+            "5": {
+              "mse": 8.661319732666016,
+              "energy_drift_pct": 764.3941650390625,
+              "success": true,
+              "error": null
+            },
+            "6": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x36 and 30x128)"
+            },
+            "7": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x42 and 30x128)"
+            }
+          }
+        },
+        "123": {
+          "test_n": {
+            "3": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x18 and 30x128)"
+            },
+            "4": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x24 and 30x128)"
+            },
+            "5": {
+              "mse": 12.9653959274292,
+              "energy_drift_pct": 2226.873291015625,
+              "success": true,
+              "error": null
+            },
+            "6": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x36 and 30x128)"
+            },
+            "7": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x42 and 30x128)"
+            }
+          }
+        },
+        "456": {
+          "test_n": {
+            "3": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x18 and 30x128)"
+            },
+            "4": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x24 and 30x128)"
+            },
+            "5": {
+              "mse": 11.821693420410156,
+              "energy_drift_pct": 1750.902587890625,
+              "success": true,
+              "error": null
+            },
+            "6": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x36 and 30x128)"
+            },
+            "7": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x42 and 30x128)"
+            }
+          }
+        }
+      }
+    },
+    "HNN": {
+      "seeds": {
+        "42": {
+          "test_n": {
+            "3": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x18 and 30x128)"
+            },
+            "4": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x24 and 30x128)"
+            },
+            "5": {
+              "mse": 352.4333190917969,
+              "energy_drift_pct": 17.473068237304688,
+              "success": true,
+              "error": null
+            },
+            "6": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x36 and 30x128)"
+            },
+            "7": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x42 and 30x128)"
+            }
+          }
+        },
+        "123": {
+          "test_n": {
+            "3": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x18 and 30x128)"
+            },
+            "4": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x24 and 30x128)"
+            },
+            "5": {
+              "mse": 4.490704536437988,
+              "energy_drift_pct": 17.25491714477539,
+              "success": true,
+              "error": null
+            },
+            "6": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x36 and 30x128)"
+            },
+            "7": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x42 and 30x128)"
+            }
+          }
+        },
+        "456": {
+          "test_n": {
+            "3": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x18 and 30x128)"
+            },
+            "4": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x24 and 30x128)"
+            },
+            "5": {
+              "mse": 8.467556953430176,
+              "energy_drift_pct": 14.41611099243164,
+              "success": true,
+              "error": null
+            },
+            "6": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x36 and 30x128)"
+            },
+            "7": {
+              "mse": Infinity,
+              "success": false,
+              "error": "mat1 and mat2 shapes cannot be multiplied (50x42 and 30x128)"
+            }
+          }
+        }
+      }
+    }
+  }
+}

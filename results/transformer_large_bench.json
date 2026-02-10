@@ -1,0 +1,5 @@
+{
+  "model": "Large Transformer",
+  "params": 37835270,
+  "latency_ms": 24.880919456481934
+}

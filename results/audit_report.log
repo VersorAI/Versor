@@ -1,0 +1,107 @@
+Generating Final Paper Report...
+
+--- N-BODY ROLLOUT RESULTS (From multi_seed_results_20260130.json) ---
+Transformer          | MSE: 6.6086 ± 6.4149 | Drift: 381.1%
+Versor               | MSE: 5.2102 ± 6.3871 | Drift: 133.0%
+GNS                  | MSE: 5.8811 ± 6.4075 | Drift: 366.7%
+HNN                  | MSE: 4.8259 ± 6.3780 | Drift: 10.7%
+Mamba                | MSE: 7.4459 ± 6.3820 | Drift: 238.0%
+Versor-4ch           | MSE: 6.7480 ± 7.2202 | Drift: 187.5%
+Ham-Versor           | MSE: 4.8271 ± 6.3789 | Drift: 2.4%
+EGNN                 | MSE: 6.6954 ± 5.9363 | Drift: 723.9%
+
+--- ZERO-SHOT N-GENERALIZATION (From variable_n_results_20260130_072537.json) ---
+Versor:
+  N=3: 7.1864
+  N=4: 13.6570
+  N=5: 3.4356
+  N=6: 7.4983
+  N=7: 9.9581
+GNS:
+  N=3: 5.8799
+  N=4: 3.0244
+  N=5: 6.3067
+  N=6: 7.0132
+  N=7: 8.5918
+Transformer:
+  N=3: FAILED
+  N=4: FAILED
+  N=5: 11.1495
+  N=6: FAILED
+  N=7: FAILED
+HNN:
+  N=3: FAILED
+  N=4: FAILED
+  N=5: 121.7972
+  N=6: FAILED
+  N=7: FAILED
+
+--- Parameter Counts ---
+--- Parameter Count Verification ---
+VersorRotorRNN: 6662
+StandardTransformer: 1321886
+GNS: 26310
+HNN: 20609
+Ham-Versor: 43776
+GATr: 2209058
+
+--- Throughput & Memory ---
+============================================================
+GATr LIFT BENCHMARK: Memory & Speed
+============================================================
+Device: cpu
+
+--- Benchmarking Standard Approach ---
+Standard Time: 7379.73 ms
+Standard Memory Delta: 7850.22 MB
+
+--- Benchmarking Optimized Kernel ---
+Optimized Time: 94.00 ms
+Optimized Memory Delta: 147.41 MB
+
+============================================================
+Speedup: 78.5x
+Memory Reduction: 53.3x
+============================================================
+
+--- Latency ---
+Versor Latency (CPU): 14.48 ms
+Standard Transformer Latency: 0.82 ms
+
+--- Model Logic Checks ---
+Testing VersorAttention...
+Output shape: torch.Size([2, 5, 16, 32])
+Attn Scalar shape: torch.Size([2, 4, 5, 5])
+Attn Bivector shape: torch.Size([2, 4, 5, 5])
+Torque modulation enabled.
+Bivector score has non-zero values.
+
+[VERIFICATION] Checking Attention Logic Implementation:
+Code implements: score += gamma * torque
+Paper claims: Value += gamma * torque * Value
+
+Testing HamiltonianVersorNN...
+Forward pass successful. Output shape: torch.Size([2, 10, 5, 6])
+
+Testing compute_energy...
+Computed Energy: -0.4990009665489197
+Energy calculation INCORRECT. Expected -0.5, got -0.4990009665489197
+
+--- Throughput & Memory ---
+============================================================
+GATr LIFT BENCHMARK: Memory & Speed
+============================================================
+Device: cpu
+
+--- Benchmarking Standard Approach ---
+Standard Time: 2249.94 ms
+Standard Memory Delta: 7905.98 MB
+
+--- Benchmarking Optimized Kernel ---
+Optimized Time: 83.57 ms
+Optimized Memory Delta: 0.10 MB
+
+============================================================
+Speedup: 26.9x
+Memory Reduction: 79059.8x
+============================================================

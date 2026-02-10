@@ -1,0 +1,61 @@
+{
+    "timestamp": "2026-01-30T11:45:00",
+    "experiment": "n_body_multiseed_rollout",
+    "seeds": [
+        42,
+        123,
+        456,
+        789,
+        1011
+    ],
+    "statistics": {
+        "Transformer": {
+            "mse_mean": 6.6086,
+            "mse_std": 6.4149,
+            "drift_mean": 381.1,
+            "drift_std": 41.1
+        },
+        "Versor": {
+            "mse_mean": 5.2102,
+            "mse_std": 6.3871,
+            "drift_mean": 133.0,
+            "drift_std": 37.7
+        },
+        "GNS": {
+            "mse_mean": 5.8811,
+            "mse_std": 6.4075,
+            "drift_mean": 366.7,
+            "drift_std": 85.7
+        },
+        "HNN": {
+            "mse_mean": 4.8259,
+            "mse_std": 6.3780,
+            "drift_mean": 10.7,
+            "drift_std": 1.1
+        },
+        "Mamba": {
+            "mse_mean": 7.4459,
+            "mse_std": 6.3820,
+            "drift_mean": 238.0,
+            "drift_std": 60.5
+        },
+        "Versor-4ch": {
+            "mse_mean": 6.7480,
+            "mse_std": 7.2202,
+            "drift_mean": 187.5,
+            "drift_std": 46.0
+        },
+        "Ham-Versor": {
+            "mse_mean": 4.8271,
+            "mse_std": 6.3789,
+            "drift_mean": 2.4,
+            "drift_std": 1.7
+        },
+        "EGNN": {
+            "mse_mean": 6.6954,
+            "mse_std": 5.9363,
+            "drift_mean": 723.9,
+            "drift_std": 351.2
+        }
+    }
+}

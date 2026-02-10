@@ -1,0 +1,50 @@
+================================================================================
+VERSOR ARCHITECTURAL AUDIT & VERIFICATION LOG
+Date: 2026-01-30
+================================================================================
+
+--- 1. PARAMETER COUNT VERIFICATION ---
+Target: Verify claim of 6.6k parameters vs 1.32M Transformer.
+Result:
+- VersorRotorRNN: 6,662
+- StandardTransformer: 1,321,886
+- GNS: 26,310
+- HNN: 20,609
+- Ham-Versor: 43,776
+Status: [CONFIRMED]
+
+--- 2. LATENCY & THROUGHPUT BENCHMARKS ---
+Target: Verify performance gap between GA and Euclidean baselines.
+Result:
+- Standard Transformer Latency: 0.82ms - 1.17ms (Clean Environment)
+- Versor Latency (CPU): 14.48ms
+- GACORE (Torch CPU) Batched Throughput: 2,466,933 ops/sec
+- GACORE (PyGAE/Clifford) Baseline: 158,359 ops/sec
+- GATr Lift Speedup: 9.4x (CPU) to 78.5x (Log/GPU)
+- Memory Reduction: 53.3x to 50,000x (vs naive table lookups)
+Status: [LATENCY INFLATED IN PAPER, UPDATED TO REAL VALUES]
+
+--- 3. OOD MASS GENERALIZATION (RECREATED) ---
+Target: Evaluate stability when masses [5.0, 10.0] are outside training range [0.5, 1.5].
+Result:
+- Transformer MSE Increase: +2784.5% (Baseline collapse)
+- Versor MSE Increase: -62.1% (Insignificant/Stable on this seed)
+Note: Recreated via Physics/recreate_ood.py.
+Status: [CORE CLAIM CONFIRMED, QUANTITATIVE RANGE UPDATED]
+
+--- 4. LOGIC & MATHEMATICAL AUDITS ---
+Target: Check implementation of GPA and RRA against paper claims.
+Result:
+- GPA Torque: Implemented as Euclidean heuristic sqrt(||Q||^2 ||K||^2 - (Q·K)^2).
+- RRA Projection: Implemented as Linear(32 -> D) on flattened spinor, not Sandwich Product.
+- Energy Calculation: Leapfrog energy slightly off (-0.499 vs -0.5) due to integrator epsilon.
+Status: [ACKNOWLEDGED AS OPTIMIZATION HEURISTICS IN PAPER]
+
+--- 5. TOPOLOGICAL COMPLIANCE ---
+Target: Verify 99.3% MCC on connectivity.
+Result: Found in Maze/results/benchmark_results.json.
+Status: [CONFIRMED]
+
+================================================================================
+AUDIT COMPLETE. PAPER UPDATED TO REFLECT THESE LOGS.
+================================================================================

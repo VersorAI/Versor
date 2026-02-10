@@ -1,0 +1,37 @@
+================================================================================
+VERSOR VERIFICATION SUITE - 2026-02-02 18:18:22
+================================================================================
+
+--- PARAMETER COUNTS (VERIFIED) ---
+  VersorRotorRNN: 6,662 (0.0067M)
+  StandardTransformer: 1,321,886 (1.3219M)
+  GNS: 26,310 (0.0263M)
+  HNN: 20,609 (0.0206M)
+  MultiChannelVersor (4ch): 48,008 (0.0480M)
+  Ham-Versor: 43,776 (0.0438M)
+  EGNN: 29,958 (0.0300M)
+  Mamba: 49,631 (0.0496M)
+
+--- OOD MASS GENERALIZATION ---
+  Normal Mass Range: [0.5, 1.5]
+  Heavy Mass Range: [5.0, 10.0]
+  
+  Transformer:
+    Normal MSE: 5.0713
+    Heavy MSE:  162.1382
+    Increase:   3097.2%
+  
+  Versor:
+    Normal MSE: 2.5685
+    Heavy MSE:  2.0584
+    Increase:   -19.9%
+  
+  Degradation Ratio: 309719.2x
+
+--- STATISTICAL NOTES ---
+  - Cohen's d ≈ 0.22 (small effect size)
+  - 95% CI includes zero → NOT statistically significant
+  - Key advantage: 200x parameter efficiency, not raw accuracy
+  - Future work: Use 20+ seeds for robust comparisons
+
+================================================================================

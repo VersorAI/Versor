@@ -2,9 +2,9 @@
 
 A native Geometric Algebra Transformer architecture based on Conformal Geometric Algebra Cl(4,1), implementing multivector representations and geometric products for deep learning.
 
-## 🚀 Quick Start
+## Quick Start
 
-**New to Versor?** Start with the interactive tutorial:
+Start with the interactive tutorial:
 
 ```bash
 jupyter notebook quickstart.ipynb
@@ -40,12 +40,11 @@ Versor/
 ├── gatr/                     # GATr baseline implementation
 ├── data/                     # Datasets
 ├── results/                  # Experimental results
-├── Paper/                    # Research paper and figures
 ├── requirements.txt          # Python dependencies
 └── kernel.py                # Custom CUDA kernels
 ```
 
-## 🔧 Installation
+## Installation
 
 1. Clone the repository:
 ```bash
@@ -64,7 +63,7 @@ pip install -r requirements.txt
 # The custom kernels in kernel.py will be compiled automatically
 ```
 
-## 📚 Core Components
+## Core Components
 
 ### Model Architecture
 
@@ -83,7 +82,7 @@ pip install -r requirements.txt
 - `reverse_cl41`: Clifford conjugation
 - `normalize_cl41`: Manifold normalization
 
-## 🧪 Example Tasks
+## Example Tasks
 
 ### NLP: Dyck Language Recognition
 ```bash
@@ -121,7 +120,7 @@ python tasks/scripts/benchmark_gatr.py
 python tasks/scripts/generate_plot.py
 ```
 
-## 🎯 Adapting to Your Problem
+## Adapting to Your Problem
 
 The `quickstart.ipynb` provides a template for:
 - **Regression tasks**: Predict continuous values
@@ -136,7 +135,7 @@ Key steps:
 4. Train with standard PyTorch training loop
 5. Evaluate and visualize results
 
-## 📖 Citation
+## Citation
 
 If you use this code in your research, please cite:
 
@@ -144,7 +143,7 @@ If you use this code in your research, please cite:
 # See CITATION.cff for full citation details
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please:
 1. Fork the repository
@@ -152,15 +151,15 @@ Contributions are welcome! Please:
 3. Make your changes
 4. Submit a pull request
 
-## 📄 License
+## License
 
 See LICENSE file for details.
 
-## 🔗 Resources
+## Resources
 - **Documentation**: Each task folder contains specific documentation
 - **Examples**: Browse `tasks/` for domain-specific implementations
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 **Import errors**: Ensure you're in the repository root and have installed all dependencies
 

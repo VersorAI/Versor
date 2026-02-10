@@ -1,0 +1,13 @@
+{
+  "cpp_enabled": {
+    "Transformer": 0.6476402282714844,
+    "Versor": 1.4458084106445312,
+    "Versor-4ch": 3.6963796615600586,
+    "Ham-Versor": 4.1008734703063965
+  },
+  "python_fallback": {
+    "Versor": 24.811,
+    "Versor-4ch": 30.2,
+    "Ham-Versor": 35.5
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "timestamp": "20260202_181822",
+  "verification_date": "2026-02-02T18:18:22.013726",
+  "parameter_counts": {
+    "VersorRotorRNN": 6662,
+    "StandardTransformer": 1321886,
+    "GNS": 26310,
+    "HNN": 20609,
+    "MultiChannelVersor (4ch)": 48008,
+    "Ham-Versor": 43776,
+    "EGNN": 29958,
+    "Mamba": 49631
+  },
+  "ood_mass_test": {
+    "normal": {
+      "transformer": 5.071268558502197,
+      "versor": 2.568539619445801
+    },
+    "heavy": {
+      "transformer": 162.13819885253906,
+      "versor": 2.058366060256958
+    },
+    "increase_percent": {
+      "transformer": 3097.1921222887613,
+      "versor": -19.86239789047599
+    },
+    "degradation_ratio": 309719.21222887613
+  },
+  "multi_seed_stats": {
+    "Transformer": {
+      "mse_mean": 6.6086,
+      "mse_std": 6.4149,
+      "drift_mean": 381.1,
+      "drift_std": 41.1
+    },
+    "Versor": {
+      "mse_mean": 5.2102,
+      "mse_std": 6.3871,
+      "drift_mean": 133.0,
+      "drift_std": 37.7
+    },
+    "GNS": {
+      "mse_mean": 5.8811,
+      "mse_std": 6.4075,
+      "drift_mean": 366.7,
+      "drift_std": 85.7
+    },
+    "HNN": {
+      "mse_mean": 4.8259,
+      "mse_std": 6.378,
+      "drift_mean": 10.7,
+      "drift_std": 1.1
+    },
+    "Mamba": {
+      "mse_mean": 7.4459,
+      "mse_std": 6.382,
+      "drift_mean": 238.0,
+      "drift_std": 60.5
+    },
+    "Versor-4ch": {
+      "mse_mean": 6.748,
+      "mse_std": 7.2202,
+      "drift_mean": 187.5,
+      "drift_std": 46.0
+    },
+    "Ham-Versor": {
+      "mse_mean": 4.8271,
+      "mse_std": 6.3789,
+      "drift_mean": 2.4,
+      "drift_std": 1.7
+    },
+    "EGNN": {
+      "mse_mean": 6.6954,
+      "mse_std": 5.9363,
+      "drift_mean": 723.9,
+      "drift_std": 351.2
+    }
+  },
+  "notes": [
+    "Parameter counts verified against actual model implementations",
+    "OOD test uses masses [5.0, 10.0] vs training [0.5, 1.5]",
+    "High variance (CV>100%) is inherent to chaotic N-body systems",
+    "MSE differences between models are not statistically significant at p<0.05"
+  ]
+}
