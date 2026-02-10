@@ -1,0 +1,14 @@
+# Core Machine Learning
+torch>=2.0.0
+torchvision
+
+# Numerical Computing
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Visualization & Logging
+matplotlib>=3.7.0
+
+# System Utilities
+argparse
+typing-extensions
