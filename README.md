@@ -156,8 +156,7 @@ Contributions are welcome! Please:
 See LICENSE file for details.
 
 ## Resources
-- **Documentation**: Each task folder contains specific documentation
-- **Examples**: Browse `tasks/` for domain-specific implementations
+Browse `tasks/` for domain-specific implementations
 
 ## Troubleshooting
 
