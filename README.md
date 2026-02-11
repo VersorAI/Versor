@@ -1,6 +1,6 @@
 # Versor: Geometric Transformer for Conformal Geometric Algebra
 
-A native Geometric Algebra Transformer architecture based on Conformal Geometric Algebra Cl(4,1), implementing multivector representations and geometric products for deep learning.
+A native Geometric Algebra Transformer architecture based on Conformal Geometric Algebra $\mathcal{C}l(4,1)$, implementing multivector representations and geometric products for deep learning.
 
 ## Quick Start
 
