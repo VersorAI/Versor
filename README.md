@@ -140,7 +140,15 @@ Key steps:
 If you use this code in your research, please cite:
 
 ```bibtex
-# See CITATION.cff for full citation details
+@article{Huy:2026wcd,
+    author = "Huy, Truong Minh and Hirst, Edward",
+    title = "{Versor: A Geometric Sequence Architecture}",
+    eprint = "2602.10195",
+    archivePrefix = "arXiv",
+    primaryClass = "cs.LG",
+    month = "2",
+    year = "2026"
+}
 ```
 
 ## Contributing
