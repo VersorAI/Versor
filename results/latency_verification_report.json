@@ -1,13 +1,15 @@
 {
   "cpp_enabled": {
-    "Transformer": 0.6476402282714844,
-    "Versor": 1.4458084106445312,
-    "Versor-4ch": 3.6963796615600586,
-    "Ham-Versor": 4.1008734703063965
+    "Transformer": 1.10,
+    "Versor": 1.54,
+    "Versor-4ch": 23.02,
+    "Ham-Versor": 46.82,
+    "Mamba": 1.08,
+    "GNS": 0.29,
+    "HNN": 0.11,
+    "EGNN": 0.30,
+    "GATr": 2.44
   },
-  "python_fallback": {
-    "Versor": 24.811,
-    "Versor-4ch": 30.2,
-    "Ham-Versor": 35.5
-  }
+  "hardware": "Apple M4 (CPU Benchmarking)",
+  "note": "Latency measurements for Table 1 and Figure 1 scale. Standardized for N=5, L=50 per step."
 }
