@@ -5,10 +5,10 @@ import json
 import os
 import sys
 
-# Append local path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+# Append project root
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from Physics.models import (
+from tasks.nbody.models import (
     StandardTransformer, VersorRotorRNN, MultiChannelVersor, HamiltonianVersorNN
 )
 
@@ -48,25 +48,88 @@ def benchmark_latency():
         print(f"  {name}: {dt:.3f} ms")
 
     # Test with C++ Disabled (Python Fallback)
-    print("\nBenchmarking with C++ Accelerated: OFF (Python fallback)")
-    os.environ["VERSOR_NO_CPP"] = "1"
+    # Must use subprocess to ensure VERSOR_NO_CPP is set BEFORE module import
+    print("\\nBenchmarking with C++ Accelerated: OFF (Python fallback)")
     
-    # Reload components might be tricky because of module caching, 
-    # but models.py checks the env var inside the forward pass logic? 
-    # Let's check models.py again. 
-    # In my last edit to models.py, I checking os.environ["VERSOR_NO_CPP"] INSIDE the try/except block.
-    # Wait, no, I put it in the try block at the TOP of the file. 
-    # That means it's set at import time. 
+    import subprocess
+    import tempfile
     
-    # To force the fallback, I can either reload the module or just trust the previous bench 
-    # results I saw in the terminal.
-    # Actually, let's just use a fresh subprocess or re-import hack.
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
+        tmp_path = tmp.name
     
-    results["python_fallback"] = {
-        "Versor": 24.811, 
-        "Versor-4ch": 30.2, # Approximated from previous runs
-        "Ham-Versor": 35.5
-    }
+    fallback_script = f'''
+import torch
+import time
+import os
+import sys
+import json
+
+# Set env var BEFORE any imports
+os.environ["VERSOR_NO_CPP"] = "1"
+
+sys.path.insert(0, "{os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))}")
+
+from tasks.nbody.models import VersorRotorRNN, MultiChannelVersor, HamiltonianVersorNN
+
+device = "cpu"
+N = 5
+L = 50
+iters = 50
+
+results = {{}}
+
+model_configs = {{
+    "Versor": lambda: VersorRotorRNN(n_particles=N),
+    "Versor-4ch": lambda: MultiChannelVersor(n_particles=N, n_channels=4),
+    "Ham-Versor": lambda: HamiltonianVersorNN(n_particles=N)
+}}
+
+for name, config in model_configs.items():
+    model = config().to(device)
+    model.eval()
+    x = torch.randn(1, L, N, 6).to(device)
+    # Warmup
+    for _ in range(3): _ = model(x)
+    
+    t_start = time.time()
+    for _ in range(iters):
+        _ = model(x)
+    dt = (time.time() - t_start) / iters * 1000
+    results[name] = dt
+    print(f"{{name}}: {{dt:.3f}} ms")
+
+with open("{tmp_path}", "w") as f:
+    json.dump(results, f)
+'''
+    
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", fallback_script],
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        
+        print(proc.stdout)
+        if proc.returncode != 0:
+            raise Exception(f"Subprocess failed: {proc.stderr}")
+        
+        with open(tmp_path, 'r') as f:
+            results["python_fallback"] = json.load(f)
+        
+        os.unlink(tmp_path)
+            
+    except Exception as e:
+        print(f"  WARNING: Python fallback measurement failed: {e}")
+        print(f"  stderr: {proc.stderr if 'proc' in locals() else 'N/A'}")
+        print(f"  Using NULL values - MUST BE MEASURED MANUALLY")
+        results["python_fallback"] = {
+            "Versor": None,
+            "Versor-4ch": None,
+            "Ham-Versor": None
+        }
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
     # Save to file
     with open("latency_verification_report.json", "w") as f:

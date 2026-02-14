@@ -7,7 +7,8 @@ import os
 import sys
 
 # Ensure we can import the models
-sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'Physics')))
+# Ensure we can import the models
+sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'tasks/nbody')))
 from models import VersorRotorRNN, StandardTransformer, GraphNetworkSimulator
 
 def measure_resource_usage(model, device, seq_length, n_particles=5, input_dim=6):
@@ -39,6 +40,14 @@ def measure_resource_usage(model, device, seq_length, n_particles=5, input_dim=6
         memory = 0
         if device == 'cuda':
             memory = torch.cuda.max_memory_allocated() / (1024 * 1024) # MB
+        else:
+            import resource
+            import sys
+            # ru_maxrss is in bytes on Mac, KB on Linux
+            if sys.platform == 'darwin':
+                memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1024 * 1024)
+            else:
+                memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0
         
         return {"latency": latency, "memory": memory, "success": True}
     except RuntimeError as e:

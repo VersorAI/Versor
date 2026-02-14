@@ -1,3 +1,8 @@
+# gacore - A fork of the pygae/clifford library
+# Original Copyright (c) 2006, Robert Kern
+# Original Copyright (c) 2016, clifford Developers
+# Licensed under the BSD 3-Clause License. See LICENSE.txt for details.
+
 """
 .. currentmodule:: gacore
 
