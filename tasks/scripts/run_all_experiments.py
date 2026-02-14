@@ -44,7 +44,7 @@ def run_experiment_1_nbody():
     print("="*60)
     
     try:
-        from Physics import run_multi_seed
+        from tasks.nbody import run_multi_seed
         # Modified seeds and epochs for faster verification if needed, 
         # but here we'll try to get real numbers
         run_multi_seed.main()
@@ -73,7 +73,7 @@ def run_experiment_2_topology():
     print("="*60)
     
     try:
-        from Maze import sweep
+        from tasks.topology import sweep
         # Set args for verification (small sweep)
         import argparse
         sys.argv = [sys.argv[0], '--sizes', '8', '16', '--repeats', '1', '--epochs', '5', '--outfile', 'results/maze_results.json']
@@ -94,7 +94,7 @@ def run_experiment_3_ood():
     print("="*60)
     
     try:
-        from Physics import recreate_ood
+        from tasks.nbody import recreate_ood
         recreate_ood.run_ood_test()
         
         # Load the results it barely saved
@@ -115,7 +115,7 @@ def run_experiment_4_ablation():
     print("="*60)
     
     try:
-        from Physics import rigorous_ablation
+        from tasks.nbody import rigorous_ablation
         rigorous_ablation.main()
         
         # Load the results it saved
@@ -152,7 +152,7 @@ def run_experiment_new_domains():
     print("="*60)
     
     try:
-        import run_multimodal_experiments as mm
+        from tasks.scripts import run_multimodal_experiments as mm
         
         # Run all seeds and get aggregated stats
         results = mm.run_all_seeds()
