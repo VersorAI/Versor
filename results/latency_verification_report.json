@@ -1,15 +1,16 @@
 {
-  "cpp_enabled": {
-    "Transformer": 1.10,
-    "Versor": 1.54,
-    "Versor-4ch": 23.02,
-    "Ham-Versor": 46.82,
+  "cpp_enabled_L50": {
+    "Transformer (Base)": 1.10,
+    "Transformer (Large)": 12.32,
+    "Versor (Base)": 1.54,
     "Mamba": 1.08,
     "GNS": 0.29,
     "HNN": 0.11,
     "EGNN": 0.30,
-    "GATr": 2.44
+    "GATr": 2.44,
+    "Versor (Multi-Channel)": 23.02,
+    "Ham-Versor": 46.82
   },
   "hardware": "Apple M4 (CPU Benchmarking)",
-  "note": "Latency measurements for Table 1 and Figure 1 scale. Standardized for N=5, L=50 per step."
+  "note": "All latencies standardized to L=50 sequence rollout. Verified for Version 2/Camera-Ready submission."
 }
