@@ -12,11 +12,8 @@ import json
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(os.path.join(root_dir))
 sys.path.append(os.path.join(root_dir, "gatr"))
-sys.path.append(os.path.join(root_dir, "Physics"))
 
-from data_gen import generate_gravity_data
-import mock_dependencies
-mock_dependencies.apply_mocks()
+from tasks.nbody.data_gen import generate_gravity_data
 
 # Import GATr components
 try:
@@ -24,7 +21,6 @@ try:
     from gatr.interface import embed_point, embed_scalar, embed_translation, extract_point, extract_translation
     from gatr.utils.einsum import enable_cached_einsum
     enable_cached_einsum(False)
-
 except ImportError as e:
     print(f"Failed to import GATr: {e}")
     print("Ensure 'gatr' folder is in the root directory.")

@@ -10,14 +10,10 @@ from datetime import datetime
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_dir)
 sys.path.append(os.path.join(root_dir, "gatr"))
-sys.path.append(os.path.join(root_dir, "Physics"))
 
-import mock_dependencies
-mock_dependencies.apply_mocks()
-
-from Physics.run_gatr import GATrAdapter
-from Physics.models import MambaSimulator
-from Physics.data_gen import generate_gravity_data
+from tasks.nbody.run_gatr import GATrAdapter
+from tasks.nbody.models import MambaSimulator
+from tasks.nbody.data_gen import generate_gravity_data
 
 def train_and_eval_model(name, model, device, train_data, test_data_5, test_data_3):
     print(f"\n--- Training {name} ---")

@@ -8,14 +8,11 @@ import sys
 import os
 import json
 
-# Ensure we can import from Physics directory
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Ensure we can import from tasks.nbody directory
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-import mock_dependencies
-mock_dependencies.apply_mocks()
-
-from data_gen import generate_gravity_data
-from models import MambaSimulator
+from tasks.nbody.data_gen import generate_gravity_data
+from tasks.nbody.models import MambaSimulator
 
 def compute_energy(data, mass=1.0, G=1.0):
     """

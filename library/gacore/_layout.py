@@ -1,3 +1,8 @@
+# gacore/_layout.py - A fork of the pygae/clifford library
+# Original Copyright (c) 2006, Robert Kern
+# Original Copyright (c) 2016, clifford Developers
+# Licensed under the BSD 3-Clause License. See LICENSE.txt for details.
+
 import functools
 from typing import List, Tuple, Optional, Dict, Container
 import warnings

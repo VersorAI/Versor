@@ -11,20 +11,16 @@ from datetime import datetime
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_dir)
 sys.path.append(os.path.join(root_dir, "gatr"))
-sys.path.append(os.path.join(root_dir, "Physics"))
 
-import mock_dependencies
-mock_dependencies.apply_mocks()
-
-from Physics.run_gatr import GATrAdapter
-from Physics.models import (
+from tasks.nbody.run_gatr import GATrAdapter
+from tasks.nbody.models import (
     VersorRotorRNN, 
     MambaSimulator, 
     GraphNetworkSimulator, 
     EquivariantGNN,
     StandardTransformer
 )
-from Physics.data_gen import generate_gravity_data
+from tasks.nbody.data_gen import generate_gravity_data
 
 # --- ADAPTERS FOR 3D POS INPUT ---
 
