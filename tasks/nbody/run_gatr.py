@@ -8,6 +8,16 @@ import sys
 import os
 import json
 
+# Compatibility Bridge for non-NVIDIA hardware (Mac/CPU)
+try:
+    import xformers
+except ImportError:
+    class MockXformers:
+        class ops:
+            class AttentionBias: pass
+    sys.modules['xformers'] = MockXformers
+    sys.modules['xformers.ops'] = MockXformers.ops
+
 # Add paths
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(os.path.join(root_dir))
