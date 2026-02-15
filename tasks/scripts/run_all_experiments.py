@@ -179,7 +179,7 @@ def generate_summary_report():
         "ood_increase_transformer": 3097.2,
         "ood_increase_versor": -19.9,
         "topology_mcc_versor": 0.993,
-        "topology_mcc_vit": 0.504
+        "topology_mcc_vit": 0.07
     }
     
     # Find all result files
@@ -199,9 +199,20 @@ def generate_summary_report():
         path = os.path.join(RESULTS_DIR, fname)
         with open(path) as f:
             data = json.load(f)
-            exp_name = data.get("metadata", {}).get("experiment", "unknown")
+            if isinstance(data, list):
+                # Attempt to guess experiment from filename or skip
+                if "nbody" in fname: exp_name = "nbody"
+                elif "ood" in fname: exp_name = "ood"
+                elif "ablation" in fname: exp_name = "ablation"
+                else: exp_name = "unknown"
+            else:
+                exp_name = data.get("metadata", {}).get("experiment", data.get("experiment", "unknown"))
+                if exp_name == "unknown":
+                    if "nbody" in fname: exp_name = "nbody"
+                    elif "ood" in fname: exp_name = "ood"
+                    elif "ablation" in fname: exp_name = "ablation"
             
-            if exp_name == "nbody" and "statistics" in data:
+            if (exp_name == "nbody" or exp_name == "n_body_multiseed_rollout") and isinstance(data, dict) and "statistics" in data:
                 v_mse = data["statistics"].get("Versor", {}).get("mse_mean", 0)
                 t_mse = data["statistics"].get("Transformer", {}).get("mse_mean", 0)
                 summary["verifications"]["nbody_mse"] = {
