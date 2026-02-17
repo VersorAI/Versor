@@ -36,7 +36,8 @@ Versor/
 │   ├── multimodal/          # Multimodal learning
 │   ├── scripts/             # Analysis and benchmarking scripts
 │   └── figures/             # Generated plots and visualizations
-├── library/                  # Utility functions and helpers
+├── library/                 # Utility functions and helpers
+├── GAPU                     # Purpose-built silicon architecture               
 ├── gatr/                     # GATr baseline implementation
 ├── data/                     # Datasets
 ├── results/                  # Experimental results
