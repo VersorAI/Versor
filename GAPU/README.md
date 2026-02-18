@@ -69,7 +69,7 @@ The GAPU project explores **4 generations** of purpose-built hardware for Versor
 
 ---
 
-### Gen 4: PHOTON — Wafer-Scale Photonic Engine
+### Gen 4: PHOTON — Wafer-Scale Photonic Engine (`rtl/photon_tile.v`)
 
 **Philosophy:** "Break physics constraints — use light."
 
@@ -247,6 +247,10 @@ GAPU/
     ├── common/
     │   ├── clifford_mac.v             # Shared Clifford MAC logic
     │   └── sign_logic.v               # Hardcoded sign logic (0-cycle)
+    ├── gapu_v1_core.v                 # Gen 1: Basic parallel core
+    ├── csd_systolic.v                 # Gen 2: Systolic dataflow array
+    ├── gspa_pim.v                     # Gen 3: Processing-in-memory
+    └── photon_tile.v                  # Gen 4: Wafer-scale tile
 ```
 
 **Note:** The specific core implementations (v1, CSD, GSPA, PHOTON) are theoretical models used for the paper's analytical results. The provided common files demonstrate the fundamental proposed logic units.
