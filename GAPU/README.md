@@ -21,7 +21,7 @@ The GAPU project explores **4 generations** of purpose-built hardware for Versor
 
 ## Architecture Evolution
 
-### Gen 1: GAPU v1 — Parallel Cores (`rtl/gapu_v1_core.v`)
+### Gen 1: GAPU v1 — Parallel Cores
 
 **Philosophy:** "More cores, hardcoded signs."
 
@@ -34,7 +34,7 @@ The GAPU project explores **4 generations** of purpose-built hardware for Versor
 
 ---
 
-### Gen 2: CSD — Clifford Systolic Dataflow (`rtl/csd_systolic.v`)
+### Gen 2: CSD — Clifford Systolic Dataflow
 
 **Philosophy:** "Don't move data, move computation." (Inspired by Google TPU)
 
@@ -48,7 +48,7 @@ The GAPU project explores **4 generations** of purpose-built hardware for Versor
 
 ---
 
-### Gen 3: GSPA — Grade-Sparse Processing-in-Memory (`rtl/gspa_pim.v`)
+### Gen 3: GSPA — Grade-Sparse Processing-in-Memory
 
 **Philosophy:** "Exploit the algebra itself." (Co-designed with Versor's math)
 
@@ -69,7 +69,7 @@ The GAPU project explores **4 generations** of purpose-built hardware for Versor
 
 ---
 
-### Gen 4: PHOTON — Wafer-Scale Photonic Engine (`rtl/photon_tile.v`)
+### Gen 4: PHOTON — Wafer-Scale Photonic Engine
 
 **Philosophy:** "Break physics constraints — use light."
 
@@ -245,13 +245,11 @@ GAPU/
 │   └── GAPU_full_comparison.png       # Copy for paper/docs
 └── rtl/
     ├── common/
-    │   ├── clifford_mac.v             # Shared Clifford MAC unit
+    │   ├── clifford_mac.v             # Shared Clifford MAC logic
     │   └── sign_logic.v               # Hardcoded sign logic (0-cycle)
-    ├── gapu_v1_core.v                 # Gen 1: Basic parallel core
-    ├── csd_systolic.v                 # Gen 2: Systolic dataflow array
-    ├── gspa_pim.v                     # Gen 3: Processing-in-memory
-    └── photon_tile.v                  # Gen 4: Wafer-scale tile
 ```
+
+**Note:** The specific core implementations (v1, CSD, GSPA, PHOTON) are theoretical models used for the paper's analytical results. The provided common files demonstrate the fundamental proposed logic units.
 
 ---
 

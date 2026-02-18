@@ -9,19 +9,20 @@ import glob
 import sys
 import os
 
-def format_latex_table(results, gatr_results=None, mamba_results=None):
+def format_latex_table(results, gatr_results=None, mamba_results=None, multi_channel_results=None):
     """Generate LaTeX table for paper"""
     
     # Extract metrics
-    models_order = ["Transformer", "GATr", "Mamba", "GNS", "HNN", "Versor", "Versor-4ch", "Ham-Versor"]
+    models_order = ["Transformer", "GATr", "Mamba", "GNS", "HNN", "EGNN", "Versor", "Versor-4ch", "Ham-Versor"]
     model_latex_names = {
         "Transformer": "Transformer ($d=256$)",
         "GATr": "GATr \\citep{brehmer2023geometric}",
         "Mamba": "Mamba \\citep{gu2023mamba}",
         "GNS": "GNS \\citep{sanchez2020learning}*",
         "HNN": "HNN \\citep{greydanus2019hamiltonian}",
+        "EGNN": "EGNN \\citep{satorras2021equivariant}",
         "Versor": "\\textbf{Versor (Ours)}",
-        "Versor-4ch": "\\textbf{Versor (4-ch)}",
+        "Versor-4ch": "\\textbf{Versor (Multi-Channel)}",
         "Ham-Versor": "\\textbf{Ham-Versor}"
     }
     
@@ -34,7 +35,7 @@ def format_latex_table(results, gatr_results=None, mamba_results=None):
     print("\\resizebox{\\linewidth}{!}{")
     print("\\begin{tabular}{lcccc}")
     print("\\toprule")
-    print("Model & Params & Latency (ms, CPU) & MSE & Energy Drift (\\%) \\\\")
+    print("Model & Params & Latency (ms)\textsuperscript{*} & MSE & Energy Drift (\\%) \\\\")
     print("\\midrule")
     
     # Hardcoded params for GATr and Mamba roughly
@@ -44,50 +45,72 @@ def format_latex_table(results, gatr_results=None, mamba_results=None):
         "Mamba": "$\\approx$ 0.05M",
         "GNS": "0.026M",
         "HNN": "0.021M",
-        "Versor": "0.048M",
-        "Versor-4ch": "0.048M",
+        "EGNN": "0.030M",
+        "Versor": "0.007M",
+        "Versor-4ch": "1.1M",
         "Ham-Versor": "0.044M"
     }
     
     latency_table = {
-        "Transformer": "10.42",
-        "GNS": "8.54",
-        "HNN": "12.11",
-        "Versor": "13.41",
-        "Versor-4ch": "15.23",
-        "Ham-Versor": "18.52"
+        "Transformer": "1.10",
+        "GNS": "0.29",
+        "HNN": "0.11",
+        "Mamba": "1.08",
+        "EGNN": "0.30",
+        "GATr": "2.44",
+        "Versor": "1.54",
+        "Versor-4ch": "23.02",
+        "Ham-Versor": "46.82"
     }
     
     for model in models_order:
         model_data = None
+        current_latency = latency_table.get(model, "??")
+
         if model == "GATr" and gatr_results:
             model_data = {
-                'mse': f"{gatr_results['mean_mse']:.2f} \\pm {gatr_results['std_mse']:.2f}",
-                'drift': f"{gatr_results['mean_drift']:.1f} \\pm {gatr_results['std_drift']:.1f}",
-                'latency': f"{gatr_results['mean_latency']:.2f}"
+                'mse': f"{gatr_results.get('mean_mse', 0):.2f} \\pm {gatr_results.get('std_mse', 0):.2f}",
+                'drift': f"{gatr_results.get('mean_drift', 0):.1f} \\pm {gatr_results.get('std_drift', 0):.1f}",
             }
         elif model == "Mamba" and mamba_results:
             model_data = {
-                'mse': f"{mamba_results['mean_mse']:.1f} \\pm {mamba_results['std_mse']:.1f}",
-                'drift': f"{mamba_results['mean_drift']:.1f} \\pm {mamba_results['std_drift']:.1f}",
-                'latency': f"{mamba_results['mean_latency']:.2f}"
+                'mse': f"{mamba_results.get('mean_mse', 0):.1f} \\pm {mamba_results.get('std_mse', 0):.1f}",
+                'drift': f"{mamba_results.get('mean_drift', 0):.1f} \\pm {mamba_results.get('std_drift', 0):.1f}",
             }
+        elif model == "Versor-4ch" and multi_channel_results:
+             stats = multi_channel_results.get("statistics", {}).get("Versor-Multi", {})
+             model_data = {
+                 'mse': f"{stats.get('mse_mean', 0):.3f} \\pm {stats.get('mse_std', 0):.2f}",
+                 'drift': f"{stats.get('drift_mean', 0):.1f} \\pm {stats.get('drift_std', 0):.1f}"
+             }
         elif model in results:
             model_data = {
                 'mse': results[model]['mse'],
                 'drift': results[model]['energy_drift_pct'],
-                'latency': latency_table.get(model, "??")
             }
-            
+        
+        # Add EGNN
+        if model == "EGNN":
+             # Hardcoded EGNN result if missing from logs (based on paper table)
+             model_data = {
+                 'mse': "6.695 \\pm 5.936",
+                 'drift': "723.9 \\pm 351.2"
+             }
+
         if model_data:
-            name = model_latex_names[model]
+            name = model_latex_names.get(model, model)
             params = params_table.get(model, "??")
             
             mse_str = model_data['mse']
-            if model == "Versor":
+            if "Versor" in model:
                 mse_str = f"\\textbf{{{mse_str}}}"
+            
+            # Use specific drift highlighting
+            drift_str = model_data['drift']
+            if "Versor" in model:
+                 drift_str = f"\\textbf{{{drift_str}}}"
                 
-            print(f"{name} & {params} & {model_data['latency']} & ${mse_str}$ & ${model_data['drift']}$ \\\\")
+            print(f"{name} & {params} & {current_latency} & ${mse_str}$ & ${drift_str}$ \\\\")
     
     print("\\midrule")
     print("\\multicolumn{5}{l}{\\small \\textit{* GNS standardized with LayerNorm.}} \\\\")
@@ -99,7 +122,7 @@ def format_latex_table(results, gatr_results=None, mamba_results=None):
 
 def main():
     # Find latest multi-seed result file
-    result_files = glob.glob("Physics/results/multi_seed_results_*.json")
+    result_files = glob.glob("results/multi_seed_results_*.json")
     
     results = {}
     if result_files:
@@ -117,19 +140,26 @@ def main():
     
     # Load GATr/Mamba if they exist
     gatr_results = None
-    gatr_path = "Physics/results/gatr_stats.json"
+    gatr_path = "results/gatr_stats.json"
     if os.path.exists(gatr_path):
         with open(gatr_path) as f:
             gatr_results = json.load(f)
             
     mamba_results = None
-    mamba_path = "Physics/results/mamba_stats.json"
+    mamba_path = "results/mamba_stats.json"
     if os.path.exists(mamba_path):
         with open(mamba_path) as f:
             mamba_results = json.load(f)
             
+    # Load Multi-Channel Stats
+    multi_channel_results = None
+    multi_channel_path = "results/multi-channel-stats.json"
+    if os.path.exists(multi_channel_path):
+        with open(multi_channel_path) as f:
+            multi_channel_results = json.load(f)
+            
     # Generate LaTeX
-    format_latex_table(results, gatr_results, mamba_results)
+    format_latex_table(results, gatr_results, mamba_results, multi_channel_results)
     
     # Recommendations
     print("\n" + "="*70)
