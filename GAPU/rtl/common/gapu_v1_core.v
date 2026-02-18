@@ -2,9 +2,10 @@
 // gapu_v1_core.v - GAPU Generation 1 Core (Parallel)
 // ============================================================
 //
-// A single Geometric Algebra core that computes the full Geometric Product
-// of two 32-dimensional multivectors (A * B) sequentially using a
-// single shared Clifford MAC unit.
+// BEHAVIORAL / LATENCY MODEL ONLY - NOT SYNTHESIZABLE
+// This file models the latency characteristics and basic logic flow for 
+// architectural simulation. It does not contain synthesizable floating-point 
+// kernels or valid ASIC timing paths.
 //
 // Architecture:
 //   - Iterate through all 32x32 = 1024 basis blade pairs (i, j)
@@ -12,9 +13,6 @@
 //   - Compute term K = A[i] * B[j] * sign(i,j) * metric(i,j)
 //   - Accumulate into output register file C[i ^ j]
 //   - Total latency: ~1024 cycles per product (plus pipeline depth)
-//
-// This models the "Parallel Core" approach where 1000s of such cores
-// work in parallel, each handling one query-key pair.
 //
 // (c) 2026 Versor AI - Open Hardware License (CERN-OHL-P-2.0)
 // ============================================================

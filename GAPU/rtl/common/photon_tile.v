@@ -2,23 +2,10 @@
 // photon_tile.v - Wafer-Scale Photonic Engine Tile
 // ============================================================
 //
+// BEHAVIORAL / LATENCY MODEL ONLY - NOT SYNTHESIZABLE
 // Behavioral model of a single tile in the PHOTON wafer-scale
-// architecture.
-//
-// HYBRID ARCHITECTURE:
-//   1. **Analog Optical Core (Mocked)**:
-//      - Uses Mach-Zehnder Interferometers (MZIs) to compute
-//        matrix-vector products in the optical domain.
-//      - Modeled here as a fixed-latency behavioral block (10 cycles).
-//      - Performs the "Scoring" phase: Scalar Score = <Q * K>_0
-//
-//   2. **Digital Aggregation Logic**:
-//      - Standard CMOS logic that takes the converted optical
-//        result (ADC output) and accumulates it into the Context
-//        Memory (SRAM).
-//
-// This Verilog design focuses on the *Interface* and *Control Flow*
-// required to drive such an optical engine from a digital clock domain.
+// architecture. This file models the interface and control flow
+// required to drive an optical engine from a digital domain.
 //
 // (c) 2026 Versor AI - Open Hardware License (CERN-OHL-P-2.0)
 // ============================================================

@@ -80,8 +80,8 @@ def format_latex_table(results, gatr_results=None, mamba_results=None, multi_cha
         elif model == "Versor-4ch" and multi_channel_results:
              stats = multi_channel_results.get("statistics", {}).get("Versor-Multi", {})
              model_data = {
-                 'mse': f"{stats.get('mse_mean', 0):.3f} \\pm {stats.get('mse_std', 0):.2f}",
-                 'drift': f"{stats.get('drift_mean', 0):.1f} \\pm {stats.get('drift_std', 0):.1f}"
+                 'mse': f"{stats.get('mse_mean', 0):.3f}",
+                 'drift': f"{stats.get('drift_mean', 0):.1f}"
              }
         elif model in results:
             model_data = {

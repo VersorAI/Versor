@@ -2,14 +2,10 @@
 // gspa_pim.v - Grade-Sparse Processing-In-Memory (GSPA)
 // ============================================================
 //
+// BEHAVIORAL / LATENCY MODEL ONLY - NOT SYNTHESIZABLE
 // Models a bank of memory with integrated Clifford arithmetic
-// units (GACUs). This architecture performs "Near-Data Processing"
-// to eliminate memory bandwidth bottlenecks.
-//
-// Key Feature:
-//   - Each memory row (serving one multivector blade) has a
-//     dedicated "Score Unit" that computes partial dot products.
-//   - Only the final accumulated scalar leaves the memory bank.
+// units (GACUs). 
+// Note: FP32 multiplication and reduction are modeled behaviorally.
 //
 // (c) 2026 Versor AI - Open Hardware License (CERN-OHL-P-2.0)
 // ============================================================

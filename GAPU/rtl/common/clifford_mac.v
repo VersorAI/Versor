@@ -2,11 +2,11 @@
 // clifford_mac.v - Clifford Multiply-Accumulate Unit for Cl(4,1)
 // ============================================================
 // 
-// This is the fundamental building block of ALL GAPU variants.
-// It computes one term of the Geometric Product:
-//   C[k] += sign(i,j) * metric(i,j) * A[i] * B[j]
-//
-// where k = i XOR j, and sign/metric are computed from bit logic.
+// BEHAVIORAL / LATENCY MODEL ONLY - NOT SYNTHESIZABLE
+// This models the fundamental building block of ALL GAPU variants.
+// Note: FP32 multiplication and addition are modeled as behavioral 
+// operations and require replacement with vendor-specific hardened 
+// IP for physical implementation.
 //
 // Pipeline: 2 stages
 //   Stage 1: Sign + Index computation (combinational logic)

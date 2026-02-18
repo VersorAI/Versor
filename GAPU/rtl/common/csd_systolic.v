@@ -2,17 +2,10 @@
 // csd_systolic.v - Clifford Systolic Dataflow Array (CSD)
 // ============================================================
 //
-// A 32x32 array of Processing Elements (PEs) designed to compute
+// BEHAVIORAL / LATENCY MODEL ONLY - NOT SYNTHESIZABLE
+// This models a 32x32 array of Processing Elements (PEs) designed to compute
 // Geometric Algebra operations with maximum data reuse.
-//
-// Features:
-//   - Weight Stationary dataflow: Value multivector V is loaded
-//     into the array and held static.
-//   - Query Flow: Query multivector Q pulses through from West to East.
-//   - Accumulation: Partial products accumulate dot-product style.
-//
-// This RTL model demonstrates the connectivity and control logic
-// of the systolic array proposed in the paper.
+// Note: FP32 multiplication and addition are modeled behaviorally.
 //
 // (c) 2026 Versor AI - Open Hardware License (CERN-OHL-P-2.0)
 // ============================================================
