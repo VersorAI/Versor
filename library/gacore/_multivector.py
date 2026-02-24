@@ -758,7 +758,10 @@ class MultiVector(object):
         :math:`\frac{M}{|M|}` up to a sign
         """
 
-        return self / abs(self)
+        mag = abs(self)
+        if mag < _settings._eps:
+            return self + 0 # Return copy
+        return self / mag
 
     def hitzer_inverse(self):
         """

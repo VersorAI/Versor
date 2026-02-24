@@ -220,8 +220,8 @@ if HAS_TRITON:
     def geometric_linear(x, weight, signature):
         D_mv = x.shape[-1] # Multivector dimension
         D_basis = len(signature) # Basis vector dimension
-        if D_mv == 32 and D_basis == 5:
-            # Fast Path for 5D (Cl(4,1) or similar)
+        if D_mv == 32 and D_basis == 5 and signature[4] == -1 and all(s == 1 for s in signature[:4]):
+            # Fast Path for 5D (Cl(4,1) specifically for this kernel)
              return geometric_linear_triton_32(x, weight)
         else:
             # Fallback path for other dimensions (CPU)

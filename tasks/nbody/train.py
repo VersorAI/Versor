@@ -6,32 +6,32 @@ import time
 from data_gen import generate_gravity_data
 from models import StandardTransformer, VersorRotorRNN, GraphNetworkSimulator, HamiltonianNN, HamiltonianVersorNN
 
-def compute_energy(data, mass=1.0, G=1.0):
+def compute_energy(data, mass, G=1.0):
     """
     Computes total energy of the system.
     Data: (B, T, N, 6) -> (pos, vel)
+    Mass: (B, N, 1) or (B, N)
     Returns: (B, T) energy
     """
     pos = data[..., :3]
     vel = data[..., 3:]
     
-    # Kinetic Energy calculation: T = 0.5 * \sum m_i * v_i^2
-    # Assumptions: Uniform mass distribution (m=1.0) for relative stability metrics.
-    # Conservation analysis is performed relative to initial state t=0.
+    if mass.dim() == 2:
+        mass = mass.unsqueeze(-1)
     
+    # Kinetic Energy calculation: T = 0.5 * \sum m_i * v_i^2
     v_sq = torch.sum(vel**2, dim=-1) # (B, T, N)
-    ke = 0.5 * torch.sum(v_sq, dim=-1) # (B, T)
+    ke = 0.5 * torch.sum(mass.transpose(1, 2) * v_sq, dim=-1) # (B, T)
     
     # Potential Energy: - G * mi * mj / r
     pe = torch.zeros_like(ke)
     B, T, N, _ = pos.shape
     
-    # Calculation of pairwise potential energy
     for i in range(N):
         for j in range(i + 1, N):
             diff = pos[..., i, :] - pos[..., j, :]
             dist = torch.norm(diff, dim=-1) + 1e-3
-            pe -= (G * 1.0 * 1.0) / dist
+            pe -= (G * mass[:, i, 0] * mass[:, j, 0]) / dist
             
     return ke + pe
 
@@ -45,15 +45,11 @@ def autoregressive_rollout(model, seed_data, steps=100):
     
     with torch.no_grad():
         for _ in range(steps):
-            # Sequence prediction via recursive model invocation.
-            # Performance note: O(L) or O(L^2) complexity depending on model architecture.
-            
             out = model(current_seq)
             next_step = out[:, -1:, :, :] # (B, 1, N, 6)
             preds.append(next_step)
             
             current_seq = torch.cat([current_seq, next_step], dim=1)
-            # Context window management
             if current_seq.shape[1] > 100:
                 current_seq = current_seq[:, -100:, :, :]
                 
@@ -74,8 +70,8 @@ def train(seed=42, model_types=['std', 'versor', 'gns', 'hnn', 'versor_hnn']):
     
     # Generate Training Data
     print("Generating training data...")
-    train_data = generate_gravity_data(n_samples=200, n_steps=STEPS, device=device)
-    val_data = generate_gravity_data(n_samples=50, n_steps=STEPS, device=device)
+    train_data, train_masses = generate_gravity_data(n_samples=200, n_steps=STEPS, device=device)
+    val_data, val_masses = generate_gravity_data(n_samples=50, n_steps=STEPS, device=device)
     
     X_train = train_data[:, :-1]
     Y_train = train_data[:, 1:]
@@ -83,6 +79,7 @@ def train(seed=42, model_types=['std', 'versor', 'gns', 'hnn', 'versor_hnn']):
     # Init Models
     models = {}
     optimizers = {}
+    # ... (model init remains same)
     if 'std' in model_types:
         models['std'] = StandardTransformer(n_particles=5).to(device)
         optimizers['std'] = optim.Adam(models['std'].parameters(), lr=LR)
@@ -104,7 +101,6 @@ def train(seed=42, model_types=['std', 'versor', 'gns', 'hnn', 'versor_hnn']):
         optimizers['egnn'] = optim.Adam(models['egnn'].parameters(), lr=LR)
     if 'versor_mc' in model_types:
         from models import MultiChannelVersor
-        # K=4 channels => D_model = 128
         models['versor_mc'] = MultiChannelVersor(n_particles=5, n_channels=4).to(device)
         optimizers['versor_mc'] = optim.Adam(models['versor_mc'].parameters(), lr=LR)
     
@@ -140,7 +136,7 @@ def train(seed=42, model_types=['std', 'versor', 'gns', 'hnn', 'versor_hnn']):
             
         if (epoch+1) % 10 == 0:
             n_batches = X_train.shape[0] // BATCH_SIZE
-            avg_losses = {name: loss / n_batches for name, loss in batch_losses.items()}
+            avg_losses = {name: loss / n_batches for name, loss in avg_losses.items()}
             loss_str = " | ".join([f"{name}: {loss:.4f}" for name, loss in avg_losses.items()])
             print(f"Epoch {epoch+1:2d} | {loss_str}")
             
@@ -148,7 +144,7 @@ def train(seed=42, model_types=['std', 'versor', 'gns', 'hnn', 'versor_hnn']):
     for m in models.values():
         m.eval()
     
-    test_data = generate_gravity_data(n_samples=20, n_steps=200, device=device)
+    test_data, test_masses = generate_gravity_data(n_samples=20, n_steps=200, device=device)
     seed_window = test_data[:, :100]
     ground_truth = test_data[:, 100:]
     
@@ -161,9 +157,9 @@ def train(seed=42, model_types=['std', 'versor', 'gns', 'hnn', 'versor_hnn']):
         mse = loss_fn(preds, ground_truth).item()
         
         seed_last = seed_window[:, -1:]
-        e_start = compute_energy(seed_last)
-        e_end = compute_energy(preds[:, -1:])
-        drift = torch.mean(torch.abs(e_end - e_start)).item()
+        e_start = compute_energy(seed_last, test_masses)
+        e_end = compute_energy(preds[:, -1:], test_masses)
+        drift = torch.mean(torch.abs((e_end - e_start) / e_start)).item() * 100 # Percentage
         
         results[name] = {
             "mse": mse, 

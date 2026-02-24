@@ -51,7 +51,7 @@ def generate_gravity_data(n_samples=1000, n_steps=200, n_particles=5, dt=0.01, d
         # 4. v(t + dt) = v(t + dt/2) + a(t + dt) * dt/2
         vel = vel_half + acc * (dt / 2.0)
         
-    return torch.stack(trajectory, dim=1)
+    return torch.stack(trajectory, dim=1), mass
 
 if __name__ == "__main__":
     print("Generating sample data...")
