@@ -1,9 +1,15 @@
 """
 Geometric Transformer for Conformal Geometric Algebra Cl(4,1).
-
-This package implements a native Geometric Algebra Transformer for classifying
-Ising Model phase transitions using multivector representations and geometric products.
 """
+import os
+import sys
+
+# Ensure library is in path to find gacore
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+lib_dir = os.path.join(root_dir, "library")
+
+if lib_dir not in sys.path:
+    sys.path.insert(0, lib_dir)
 
 from .core import (
     conformal_lift,

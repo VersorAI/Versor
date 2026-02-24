@@ -15,10 +15,10 @@ def format_latex_table(results, gatr_results=None, mamba_results=None, multi_cha
     # Extract metrics
     models_order = ["Transformer", "Transformer (Large)", "GATr", "Mamba", "GNS", "HNN", "EGNN", "Versor", "Versor-4ch", "Ham-Versor"]
     model_latex_names = {
-        "Transformer": "Transformer ($d=256$)",
+        "Transformer": "Transformer ($d=128$)",
         "Transformer (Large)": "Transformer (Large)",
-        "GATr": "GATr \\citep{brehmer2023geometric}",
-        "Mamba": "Mamba \\citep{gu2023mamba}",
+        "GATr": "GATr \\citep{brehmer2023geometric}\\textsuperscript{\\ddag}",
+        "Mamba": "Mamba \\citep{gu2023mamba}\\textsuperscript{\\ddag}",
         "GNS": "GNS \\citep{sanchez2020learning}*",
         "HNN": "HNN \\citep{greydanus2019hamiltonian}",
         "EGNN": "EGNN \\citep{satorras2021equivariant}",
@@ -131,7 +131,8 @@ def format_latex_table(results, gatr_results=None, mamba_results=None, multi_cha
     # (Rest of main is same)
     
     print("\\midrule")
-    print("\\multicolumn{5}{l}{\\small \\textit{* GNS standardized with LayerNorm.}} \\\\")
+    print("\\multicolumn{5}{l}{\\small \\textit{* GNS standardized with LayerNorm for stability.}} \\\\")
+    print("\\multicolumn{5}{l}{\\small \\textit{\\textsuperscript{\\ddag} Baselines downscaled to match Versor's parameter scale.}} \\\\")
     print("\\bottomrule")
     print("\\end{tabular}")
     print("}")

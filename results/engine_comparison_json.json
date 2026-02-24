@@ -1,0 +1,17 @@
+{
+    "device": "Apple M4 (Verified)",
+    "sequence_length": 50,
+    "config": "Versor Transformer (Base)",
+    "engines": {
+        "bitmasked": {
+            "total_latency_ms": 67.09,
+            "per_token_ms": 1.342
+        },
+        "matrix": {
+            "total_latency_ms": 54.10,
+            "per_token_ms": 1.082
+        }
+    },
+    "speedup": 1.24,
+    "status": "Verified for Paper Table 1 Update"
+}

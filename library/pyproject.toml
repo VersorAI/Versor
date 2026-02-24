@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gacore"
+dynamic = ["version"]
+description = "High-Performance Geometric Algebra Core for Deep Learning"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "BSD-3-Clause"}
+authors = [
+    {name = "The Pygae Team"},
+    {name = "Antigravity AI"}
+]
+keywords = ["geometric algebra", "clifford", "deep learning", "physics", "equivariant"]
+dependencies = [
+    "numpy>=1.20.0",
+    "torch>=2.0.0",
+    "sparse>=0.13.0"
+]
+
+[project.optional-dependencies]
+cuda = ["triton>=2.1.0"]
+apple = ["mlx>=0.10.0"]
+
+[tool.setuptools.dynamic]
+version = {file = "gacore/_version.py"}

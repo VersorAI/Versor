@@ -4,19 +4,18 @@ import torch.nn.functional as F
 import sys
 import os
 
-# Append parent directory to system path for Model package visibility
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Ensure library is in path to find gacore
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+lib_dir = os.path.join(root_dir, "library")
 
-try:
-    import algebra
-except ImportError:
-    # Contingency for alternative execution environments
-    try:
-        from . import algebra
-    except ImportError:
-        import kernel as algebra
+if lib_dir not in sys.path:
+    sys.path.insert(0, lib_dir)
 
-from Model.model import VersorBlock, normalize_cl41, VersorLinear, VersorActivation
+# Model package visibility
+sys.path.append(root_dir)
+
+import gacore.kernel as algebra
+from Model.model import VersorBlock, VersorLinear, VersorActivation
 
 # Try to import C++ extension
 try:
@@ -64,31 +63,33 @@ class VersorRotorRNN(nn.Module):
     Optimized for Physics stability.
     NOTE: Sequential implementation for recurrent mode benchmarking.
     """
-    def __init__(self, input_dim=6, d_mv=32, hidden_channels=16, n_particles=5):
+    def __init__(self, input_dim=6, signature=None, hidden_channels=16, n_particles=5, method=None):
         super().__init__()
+        self.signature = signature if signature is not None else [1, 1, 1, 1, -1]
         self.hidden_channels = hidden_channels
-        self.d_mv = d_mv
+        self.ga_dim = 1 << len(self.signature)
         self.n_particles = n_particles
+        self.method = method
         
         # Particle-agnostic projections
-        self.proj_in = nn.Linear(input_dim, hidden_channels * 32)
-        self.proj_out = nn.Linear(hidden_channels * 32, input_dim)
+        self.proj_in = nn.Linear(input_dim, hidden_channels * self.ga_dim)
+        self.proj_out = nn.Linear(hidden_channels * self.ga_dim, input_dim)
         
     def forward(self, x):
         # x: (B, S, N, D)
         B, S, N, D = x.shape
         
         # Initial spinor status per particle
-        # Shape: (Batch, Particles, Hidden_Channels, 32)
-        psi = torch.zeros(B, N, self.hidden_channels, 32, device=x.device)
+        # Shape: (Batch, Particles, Hidden_Channels, ga_dim)
+        psi = torch.zeros(B, N, self.hidden_channels, self.ga_dim, device=x.device)
         psi[..., 0] = 1.0 
         
         outputs = []
         # Project each particle's state independently
-        # (B, S, N, D) -> (B, S, N, Hidden, 32)
-        x_embs = self.proj_in(x).reshape(B, S, N, self.hidden_channels, 32)
+        # (B, S, N, D) -> (B, S, N, Hidden, ga_dim)
+        x_embs = self.proj_in(x).reshape(B, S, N, self.hidden_channels, self.ga_dim)
         
-        if HAS_CPP_CORE:
+        if HAS_CPP_CORE and self.ga_dim == 32: # C++ core only supports Cl(4,1) bitmasked
             # C++ Core Implementation (Recursive Rotor Accumulator)
             # Parallelized O(L) scan on CPU/extension
             # x_embs: (B, S, N, Hidden, 32)
@@ -98,7 +99,8 @@ class VersorRotorRNN(nn.Module):
             
             # Run C++ Core
             # Returns (B, S, N, H, 32)
-            psi_seq = versor_cpp.rra_scan_forward(x_cpu)
+            use_matrix = (self.method == "matrix")
+            psi_seq = versor_cpp.rra_scan_forward(x_cpu, use_matrix)
             
             # Move back to original device
             psi_seq = psi_seq.to(x.device)
@@ -119,20 +121,20 @@ class VersorRotorRNN(nn.Module):
         # Fallback Python Implementation
         for t in range(S):
             # 1. Delta-Rotor generator for each particle
-            u_t = x_embs[:, t] # (B, N, Hidden, 32)
+            u_t = x_embs[:, t] # (B, N, Hidden, ga_dim)
             
             # 2. Cayley map to create localized rotors
             delta_r = u_t.clone()
             delta_r[..., 0] += 1.0 
-            delta_r = algebra.manifold_normalization(delta_r)
+            delta_r = algebra.manifold_normalization(delta_r, self.signature)
             
             # 3. Multiplicative Update (Per-particle spinor rotation)
-            # psi: (B, N, H, 32), delta_r: (B, N, H, 32)
-            psi = algebra.geometric_product(delta_r, psi)
-            psi = algebra.manifold_normalization(psi)
+            # psi: (B, N, H, ga_dim), delta_r: (B, N, H, ga_dim)
+            psi = algebra.geometric_product(delta_r, psi, self.signature, method=self.method)
+            psi = algebra.manifold_normalization(psi, self.signature)
             
             # 4. Output Projection
-            out_emb = psi # (B, N, H, 32)
+            out_emb = psi # (B, N, H, ga_dim)
             pred_delta = self.proj_out(out_emb.reshape(B, N, -1)) # (B, N, D)
             outputs.append(x[:, t] + pred_delta)
             
@@ -213,22 +215,24 @@ class HamiltonianVersorNN(nn.Module):
     Hamiltonian Neural Network with Versor (Geometric Algebra) backbone.
     Hybrid model combining symplectic integration with geometric algebra representations.
     """
-    def __init__(self, n_particles=5, input_dim=6, embed_dim=8, hidden_dim=32):
+    def __init__(self, n_particles=5, input_dim=6, embed_dim=8, hidden_dim=32, signature=None, method=None):
         super().__init__()
         self.n_particles = n_particles
         self.embed_dim = embed_dim
+        self.signature = signature if signature is not None else [1, 1, 1, 1, -1]
+        self.ga_dim = 1 << len(self.signature)
+        self.method = method
         
         # Project (pos, vel) or (q, p) to Versor space
-        # We input 6 scalars per particle -> embed_dim multivectors
-        self.input_proj = nn.Linear(input_dim, embed_dim * 32)
+        self.input_proj = nn.Linear(input_dim, embed_dim * self.ga_dim)
         
         # Versor Backbone to approximate the Hamiltonian H(q, p)
         self.v_net = nn.Sequential(
-            VersorLinear(embed_dim, hidden_dim),
-            VersorActivation(),
-            VersorLinear(hidden_dim, hidden_dim),
-            VersorActivation(),
-            VersorLinear(hidden_dim, 1) # Output 1 multivector per particle (we will use scalar part)
+            VersorLinear(embed_dim, hidden_dim, signature=self.signature, method=self.method),
+            VersorActivation(signature=self.signature),
+            VersorLinear(hidden_dim, hidden_dim, signature=self.signature, method=self.method),
+            VersorActivation(signature=self.signature),
+            VersorLinear(hidden_dim, 1, signature=self.signature, method=self.method) # Output 1 multivector per particle (we will use scalar part)
         )
         
     def forward(self, x, dt=0.01):
@@ -240,28 +244,19 @@ class HamiltonianVersorNN(nn.Module):
             x_grad = x_flat.detach().requires_grad_(True) # (BS, N, 6)
             
             # 1. Project to Versor Space
-            # (BS, N, 6) -> (BS, N, embed_dim * 32)
             h_emb = self.input_proj(x_grad)
-            h_emb = h_emb.view(-1, N, self.embed_dim, 32) # match VersorLinear shape (B, S, In, 32) where S=N here
+            h_emb = h_emb.view(-1, N, self.embed_dim, self.ga_dim) 
             
             # 2. Compute per-particle Energy-like terms
-            # v_net expects (B, S, In, 32). We pass (BS, N, embed_dim, 32).
-            # Output is (BS, N, 1, 32)
             h_out = self.v_net(h_emb)
             
             # 3. Aggregate to Global Scalar Energy
-            # We take the scalar part (index 0) of the output multivector
-            # h_out[..., 0] is (BS, N, 1)
-            # Sum over particles to get total energy H for the system
             energy = h_out[..., 0].sum()
             
             # 4. Compute gradients (Hamilton's equations)
             grads = torch.autograd.grad(energy, x_grad, create_graph=True)[0]
             
         grads = grads.reshape(B*S, N, 6)
-        # Symplectic update: dot_q = dH/dp, dot_p = -dH/dq
-        # x is (q, p) = (pos, vel) if mass=1
-        # grads is (dH/dq, dH/dp)
         dq_dt = grads[..., 3:]
         dp_dt = -grads[..., :3]
         
@@ -322,20 +317,23 @@ class VersorPhysicsTransformer(nn.Module):
     Geometric Transformer adapted for N-Body physics.
     Uses VersorBlocks (with GPA) to process particle interactions.
     """
-    def __init__(self, n_particles=5, input_dim=6, embed_dim=16, n_heads=4, n_layers=2):
+    def __init__(self, n_particles=5, input_dim=6, embed_dim=16, n_heads=4, n_layers=2, signature=None, method=None):
         super().__init__()
         self.n_particles = n_particles
         self.embed_dim = embed_dim
+        self.signature = signature if signature is not None else [1, 1, 1, 1, -1]
+        self.ga_dim = 1 << len(self.signature)
+        self.method = method
         
         # Project each particle's (pos, vel) to a multivector state
-        self.input_proj = nn.Linear(input_dim, embed_dim * 32)
+        self.input_proj = nn.Linear(input_dim, embed_dim * self.ga_dim)
         
         self.blocks = nn.ModuleList([
-            VersorBlock(embed_dim, n_heads) for _ in range(n_layers)
+            VersorBlock(embed_dim, n_heads, signature=self.signature, method=self.method) for _ in range(n_layers)
         ])
         
         # Project back to (pos, vel) deltas
-        self.output_proj = nn.Linear(embed_dim * 32, input_dim)
+        self.output_proj = nn.Linear(embed_dim * self.ga_dim, input_dim)
         
     def forward(self, x, return_attention=False):
         # x: (B, S, N, 6)
@@ -343,7 +341,7 @@ class VersorPhysicsTransformer(nn.Module):
         x_flat = x.reshape(B * S, N, D)
         
         # Project to MV space
-        h = self.input_proj(x_flat).view(B * S, N, self.embed_dim, 32)
+        h = self.input_proj(x_flat).view(B * S, N, self.embed_dim, self.ga_dim)
         
         all_attn_scalar = []
         all_attn_bivector = []
@@ -372,36 +370,37 @@ class MultiChannelVersor(nn.Module):
     Processes K parallel geometric channels, allowing for higher capacity (D_model = K * 32)
     while maintaining partial equivariance within channels.
     """
-    def __init__(self, n_particles=5, input_dim=6, n_channels=4, n_heads=4, n_layers=2):
+    def __init__(self, n_particles=5, input_dim=6, n_channels=4, n_heads=4, n_layers=2, signature=None, method=None):
         super().__init__()
         self.n_particles = n_particles
         self.n_channels = n_channels
-        self.d_mv = 32
+        self.signature = signature if signature is not None else [1, 1, 1, 1, -1]
+        self.ga_dim = 1 << len(self.signature)
+        self.method = method
         
-        # Input Projection: Project (pos, vel) into K * 32 dimensions
-        self.input_proj = nn.Linear(input_dim, n_channels * self.d_mv)
+        # Input Projection: Project (pos, vel) into K * ga_dim dimensions
+        self.input_proj = nn.Linear(input_dim, n_channels * self.ga_dim)
         
         # Parallel Geometric Blocks
-        # Treat (B, S, N, K, 32) as (B*K, S, N, 32) for the block.
         self.blocks = nn.ModuleList([
-            VersorBlock(n_channels, n_heads) for _ in range(n_layers)
+            VersorBlock(n_channels, n_heads, signature=self.signature, method=self.method) for _ in range(n_layers)
         ])
         
         # Mixing Layer: Equivariant inter-channel communication
         self.mixing = nn.Sequential(
-            VersorLinear(n_channels, n_channels),
-            VersorActivation(),
-            VersorLinear(n_channels, n_channels)
+            VersorLinear(n_channels, n_channels, signature=self.signature, method=self.method),
+            VersorActivation(signature=self.signature),
+            VersorLinear(n_channels, n_channels, signature=self.signature, method=self.method)
         )
-        self.output_proj = nn.Linear(n_channels * 32, input_dim)
+        self.output_proj = nn.Linear(n_channels * self.ga_dim, input_dim)
         
     def forward(self, x):
         # x: (B, S, N, 6)
         B, S, N, _ = x.shape
         x_flat = x.reshape(B * S, N, -1)
         
-        # (B*S, N, K*32) -> (B*S, N, K, 32)
-        h = self.input_proj(x_flat).reshape(B * S, N, self.n_channels, 32)
+        # (B*S, N, K*ga_dim) -> (B*S, N, K, ga_dim)
+        h = self.input_proj(x_flat).reshape(B * S, N, self.n_channels, self.ga_dim)
         
         # Fold K into Batch for parallel processing
         # (B*S*K, N, 32, 1) if VersorBlock expects (B, N, D, 32)? 

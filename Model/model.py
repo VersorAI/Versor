@@ -1,53 +1,64 @@
 import torch
 import torch.nn as nn
 from .layers import VersorAttention, VersorLinear
-from .core import normalize_cl41, gp_cl41, reverse_cl41, inner_cl41
+import gacore.kernel as kernel
 
 class VersorActivation(nn.Module):
     """
-    Structural activation function utilizing multivector magnitude gating.
-    Preserves the orientational integrity in Clifford GA space while applying 
-    a non-linear transformation based on the scalar multivector field norm.
+    Generalized Structural activation function.
     """
+    def __init__(self, signature=None):
+        super().__init__()
+        self.signature = signature if signature is not None else [1, 1, 1, 1, -1]
+        
     def forward(self, x):
         # Using the inner product to find the magnitude squared
-        norm_sq = inner_cl41(x, x)
+        # <x * ~x>_0
+        n_dims = x.shape[-1]
+        sig_diag = kernel.get_sign_matrix(self.signature, "numpy")[:, 0]
+        sig_diag = torch.from_numpy(sig_diag).to(x.device, dtype=x.dtype)
+        
+        norm_sq = torch.sum(x * x * sig_diag, dim=-1, keepdim=True)
         norm = torch.sqrt(torch.abs(norm_sq) + 1e-8)
         # ReLU gate on the magnitude
         gate = torch.relu(norm) / (norm + 1e-8)
-        return x * gate.unsqueeze(-1)
+        return x * gate
 
 class VersorBlock(nn.Module):
     """
-    High-performance block specialized for Conformal Geometric Algebra.
-    Integrates Geometric Product Attention (GPA) with a Clifford-covariant MLP.
+    General Geometric Block.
     """
-    def __init__(self, embed_dim, n_heads, expansion=4):
+    def __init__(self, embed_dim, n_heads, signature=None, expansion=4, init_values=1e-5, method=None):
         super().__init__()
-        self.attn = VersorAttention(embed_dim, n_heads)
-        # LayerNorm is applied across the dimension and multivector lanes
-        self.ln1 = nn.LayerNorm([embed_dim, 32])
-        self.ln2 = nn.LayerNorm([embed_dim, 32])
+        self.signature = signature if signature is not None else [1, 1, 1, 1, -1]
+        self.ga_dim = 1 << len(self.signature)
+        self.method = method
+        
+        self.attn = VersorAttention(embed_dim, n_heads, signature=self.signature, method=self.method)
+        self.ln1 = nn.LayerNorm([embed_dim, self.ga_dim])
+        self.ln2 = nn.LayerNorm([embed_dim, self.ga_dim])
+        
+        # LayerScale parameters
+        self.gamma1 = nn.Parameter(init_values * torch.ones((embed_dim, self.ga_dim)))
+        self.gamma2 = nn.Parameter(init_values * torch.ones((embed_dim, self.ga_dim)))
         
         self.mlp = nn.Sequential(
-            VersorLinear(embed_dim, expansion * embed_dim),
-            nn.Tanh(), # Hyperbolic tangent activation for optimized manifold mapping
-            VersorLinear(expansion * embed_dim, embed_dim)
+            VersorLinear(embed_dim, expansion * embed_dim, signature=self.signature, method=self.method),
+            nn.Tanh(),
+            VersorLinear(expansion * embed_dim, embed_dim, signature=self.signature, method=self.method)
         )
         
-    def forward(self, x, return_attention=False):
-        # Residual Connection + Attention
+    def forward(self, x, mask=None, return_attention=False):
         if return_attention:
-            attn_out, probs = self.attn(self.ln1(x), return_attention=True)
-            x = x + attn_out
+            attn_out, probs = self.attn(self.ln1(x), mask=mask, return_attention=True)
+            x = x + self.gamma1 * attn_out
         else:
-            x = x + self.attn(self.ln1(x))
+            x = x + self.gamma1 * self.attn(self.ln1(x), mask=mask)
         
-        x = normalize_cl41(x) # Manifold projection
+        x = kernel.manifold_normalization(x, self.signature)
         
-        # Residual Connection + MLP
-        x = x + self.mlp(self.ln2(x))
-        x = normalize_cl41(x)
+        x = x + self.gamma2 * self.mlp(self.ln2(x))
+        x = kernel.manifold_normalization(x, self.signature)
         
         if return_attention:
             return x, probs
@@ -55,58 +66,60 @@ class VersorBlock(nn.Module):
 
 class RecursiveRotorAccumulator(nn.Module):
     """
-    True Recursive Rotor Accumulator (RRA).
-    Implements \Psi_{t+1} = \Delta R_t \Psi_t with manifold normalization.
+    Generalized Parallel Recursive Rotor Accumulator.
     """
-    def __init__(self, embed_dim):
+    def __init__(self, embed_dim, signature=None, method=None):
         super().__init__()
-        # Project each time step to a 'delta-rotor' generator (Bivector)
-        self.rotor_gen = VersorLinear(embed_dim, embed_dim)
+        self.signature = signature if signature is not None else [1, 1, 1, 1, -1]
+        self.method = method
+        self.rotor_gen = VersorLinear(embed_dim, embed_dim, signature=self.signature, method=self.method)
         
-    def forward(self, x):
-        # x: (B, S, D, 32)
-        B, S, D, _ = x.shape
+    def forward(self, x, mask=None):
+        B, S, D, ga_dim = x.shape
         
-        # 1. Transform sequence to rotor generators (Bivectors)
-        # Using the exponential map approximation: R = exp(B/2) \approx 1 + B/2
         delta_b = self.rotor_gen(x) 
+        rotors = torch.zeros_like(delta_b)
+        rotors[..., 0] = 1.0 # Identity rotor scalar part
+        rotors = rotors + 0.5 * delta_b
+        rotors = kernel.manifold_normalization(rotors, self.signature)
         
-        # 2. Sequential Accumulation
-        # Start with identity spinor (Grade 0 = 1)
-        psi = torch.zeros(B, D, 32, device=x.device)
-        psi[..., 0] = 1.0 
-        
-        for t in range(S):
-            # Current step's rotor
-            r_t = delta_b[:, t]
-            # \Psi_{t+1} = r_t * \Psi_t (Geometric Product)
-            # We treat this as a per-channel geometric product
-            psi = gp_cl41(r_t, psi)
-            # Manifold Normalization to prevent drift
-            psi = normalize_cl41(psi)
+        curr_rotors = rotors
+        step = 1
+        while step < S:
+            left = curr_rotors[:, :-step]
+            right = curr_rotors[:, step:]
             
-        return psi
+            combined = kernel.geometric_product(right, left, self.signature, method=self.method)
+            combined = kernel.manifold_normalization(combined, self.signature)
+            
+            new_rotors = curr_rotors.clone()
+            new_rotors[:, step:] = combined
+            curr_rotors = new_rotors
+            step *= 2
+            
+        return curr_rotors
 
 class VersorTransformer(nn.Module):
     """
-    Full Geometric Transformer for Conformal Geometric Algebra Cl(4,1).
-    Equipped with Geometric Blocks and optional Stabilized Rotor Pooling.
+    Fully Generalized Geometric Transformer.
     """
-    def __init__(self, embed_dim, n_heads, n_layers, n_classes, expansion=4, use_rotor_pool=True):
+    def __init__(self, embed_dim, n_heads, n_layers, n_classes, signature=None, expansion=4, use_rotor_pool=True, method=None):
         super().__init__()
+        self.signature = signature if signature is not None else [1, 1, 1, 1, -1]
+        self.ga_dim = 1 << len(self.signature)
         self.use_rotor_pool = use_rotor_pool
+        self.method = method
+        
         self.blocks = nn.ModuleList([
-            VersorBlock(embed_dim, n_heads, expansion=expansion) for _ in range(n_layers)
+            VersorBlock(embed_dim, n_heads, signature=self.signature, expansion=expansion, method=self.method) for _ in range(n_layers)
         ])
         
         if self.use_rotor_pool:
-            self.pooler = RecursiveRotorAccumulator(embed_dim)
+            self.pooler = RecursiveRotorAccumulator(embed_dim, signature=self.signature, method=self.method)
         
-        # Final classifier maps the multivector state to class logits
-        self.classifier = nn.Linear(embed_dim * 32, n_classes)
+        self.classifier = nn.Linear(embed_dim * self.ga_dim, n_classes)
         
     def forward(self, x, return_attention=False):
-        # Process through geometric layers
         all_attn = []
         for block in self.blocks:
             if return_attention:
@@ -116,28 +129,31 @@ class VersorTransformer(nn.Module):
                 x = block(x)
             
         if self.use_rotor_pool:
-            # Recursive Rotor Accumulation (Global State Persistence)
-            x = self.pooler(x) 
+            x = self.pooler(x)[:, -1] # Final accumulated rotor
         else:
-            # Standard Global Average Pooling
             x = x.mean(dim=1)
         
-        # Flatten multivector lanes for the linear classifier
-        logits = self.classifier(x.view(x.shape[0], -1))
+        logits = self.classifier(x.reshape(x.shape[0], -1))
         
         if return_attention:
             return logits, all_attn
         return logits
 
-def get_grade_energies(x):
+
+def get_grade_energies(x, signature):
     """
-    Returns the L2 norm for each Clifford grade in the multivector x.
-    x shape: (..., 32)
+    Generalized grade energy analysis.
     """
-    from .core import GRADE_INDICES
+    n_dims = x.shape[-1]
     energies = {}
-    for grade, indices in GRADE_INDICES.items():
-        # norm of components in this grade
-        grade_data = x[..., indices]
-        energies[grade] = torch.norm(grade_data, p=2, dim=-1).mean().item()
-    return energies
+    for i in range(n_dims):
+        grade = bin(i).count('1')
+        if grade not in energies:
+            energies[grade] = 0.0
+        # Sum of squares for components of this grade
+        energies[grade] += torch.sum(x[..., i]**2).item()
+    
+    # Normalize by total and take mean across batch/seq
+    total = sum(energies.values()) + 1e-8
+    return {k: v/total for k, v in energies.items()}
+

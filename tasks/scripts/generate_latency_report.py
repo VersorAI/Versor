@@ -33,7 +33,10 @@ def benchmark_latency():
         del os.environ["VERSOR_NO_CPP"]
     
     results["cpp_enabled"] = {}
+    
+    # Standard bitmasked configurations
     for name, config in model_configs.items():
+        if name == "Ham-Versor": continue # Too slow for some CPU loops
         model = config().to(device)
         model.eval()
         x = torch.randn(1, L, N, 6).to(device)
@@ -45,7 +48,21 @@ def benchmark_latency():
             _ = model(x)
         dt = (time.time() - t_start) / iters * 1000
         results["cpp_enabled"][name] = dt
-        print(f"  {name}: {dt:.3f} ms")
+        print(f"  {name} (bitmasked): {dt:.3f} ms")
+
+    # Add Matrix Turbo Path for Versor
+    print("\nBenchmarking Matrix Turbo Path...")
+    model_matrix = VersorRotorRNN(n_particles=N, method="matrix").to(device)
+    model_matrix.eval()
+    x = torch.randn(1, L, N, 6).to(device)
+    for _ in range(5): _ = model_matrix(x)
+    
+    t_start = time.time()
+    for _ in range(iters):
+        _ = model_matrix(x)
+    dt_matrix = (time.time() - t_start) / iters * 1000
+    results["cpp_enabled"]["Versor (Matrix)"] = dt_matrix
+    print(f"  Versor (Matrix): {dt_matrix:.3f} ms")
 
     # Test with C++ Disabled (Python Fallback)
     # Must use subprocess to ensure VERSOR_NO_CPP is set BEFORE module import

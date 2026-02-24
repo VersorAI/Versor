@@ -1,54 +1,40 @@
-#!/usr/bin/env python
 from setuptools import setup, find_packages
-from os import path
+import os
 
-this_directory = path.abspath(path.dirname(__file__))
-
-with open(path.join(this_directory, 'gacore', '_version.py'), encoding='utf-8') as f:
-    exec(f.read())
-
-with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+# Get version from gacore/_version.py
+def get_version():
+    version_file = os.path.join(os.path.dirname(__file__), 'gacore', '_version.py')
+    with open(version_file, 'r') as f:
+        for line in f:
+            if line.startswith('__version__'):
+                return line.split("'")[1]
+    return '0.0.1'
 
 setup(
-    name='gacore',
-    version=__version__,
-    license='bsd',
-    description='Numerical Geometric Algebra Module',
-    long_description=long_description,
-    long_description_content_type='text/markdown',
-    author='Robert Kern',
-    maintainer='Alex Arsenovic',
-    maintainer_email='alexarsenovic@gmail.com',
-    url='http://clifford.readthedocs.io',
+    name="gacore",
+    version=get_version(),
+    author="Hugo Hadfield, Eric Wieser, Alex Arsenovic, Robert Kern, Antigravity AI",
+    author_email="contact@versor.ai",
+    description="High-Performance Geometric Algebra Core for Deep Learning",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+    url="https://github.com/VersorAI/Versor",
     packages=find_packages(),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Topic :: Scientific/Engineering :: Mathematics",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    ],
+    python_requires='>=3.8',
     install_requires=[
-        'numpy >= 1.17',
-        'scipy',
-        'numba > 0.46',
-        'h5py',
-        'sparse',
+        "numpy>=1.20.0",
+        "torch>=2.0.0",
+        "sparse>=0.13.0",
     ],
     extras_require={
-        'cuda': ['torch', 'triton'],
-        'apple': ['mlx'],
-    },
-    # package_dir={'gacore':'gacore'},
-
-    classifiers=[
-        'Intended Audience :: Science/Research',
-        'Topic :: Scientific/Engineering :: Mathematics',
-
-        'License :: OSI Approved :: BSD License',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-    ],
-    project_urls={
-        "Source Code": "https://github.com/pygae/clifford", # Legacy reference
-    },
-
-    python_requires='>=3.5',
+        "cuda": ["triton>=2.1.0"],
+        "apple": ["mlx>=0.10.0"],
+    }
 )

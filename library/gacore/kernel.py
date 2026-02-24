@@ -2,6 +2,8 @@ import torch
 import sys
 import numpy as np
 import time
+import time
+from .matrix_kernel import geometric_linear_layer_matrix, geometric_product_matrix
 
 # Dynamic Imports for Backend Detection
 HAS_MLX = False
@@ -28,20 +30,8 @@ except ImportError:
 _SIGN_CACHE = {}
 _METRIC_CACHE = {}
 
-# Default Metric: Cl(4,1) -> e0..e3 (+1), e4 (-1)
-# 3 spacelike, 1 timelike, but stored as 5 bits. 
-# Bit 4 is usually the timelike one in this legacy config.
-_METRIC = [1, 1, 1, 1, -1] # This will be deprecated in favor of passing signature
-
-def set_metric(metric):
-    """
-    Sets the metric signature for the geometric algebra.
-    metric: List or array of length 5 (for 32 dims), optional padding logic can be added.
-            Values should be 1, -1, or 0.
-    """
-    # This function is now a no-op as the metric (signature) is passed directly to functions.
-    # Kept for backward compatibility if external code calls it, but it won't affect new logic.
-    pass
+# Metric signatures are now directly passed to the core geometry kernels.
+# Legacy bit-logic globals have been deprecated to prevent silent grade flips.
 
 def get_sign_matrix(signature, device_type="numpy"):
     """
@@ -140,10 +130,12 @@ if HAS_TRITON:
             curr_k = k_pt * BLOCK_SIZE_K + rk_offs
             k_mask = (curr_k < K)
             
+            # Load and cast to float32 for stable internal accumulation
+            # This is critical for AMP (Automatic Mixed Precision) training
             x = tl.load(x_ptr + rm[:, None, None] * stride_xm + curr_k[None, :, None] * stride_xk + d_indices[None, None, :], 
-                        mask=(rm[:, None, None] < M) & (k_mask[None, :, None]))
+                        mask=(rm[:, None, None] < M) & (k_mask[None, :, None])).to(tl.float32)
             w = tl.load(w_ptr + rn[:, None, None] * stride_wn + curr_k[None, :, None] * stride_wk + d_indices[None, None, :], 
-                        mask=(rn[:, None, None] < N) & (k_mask[None, :, None]))
+                        mask=(rn[:, None, None] < N) & (k_mask[None, :, None])).to(tl.float32)
             
             for d_out in range(32):
                 d_in2 = d_indices ^ d_out
@@ -152,15 +144,9 @@ if HAS_TRITON:
                 # BIT-MASKED SIGN LOGIC (REGISTER LEVEL)
                 # =========================================================
                 # 1. Metric Sign (e4 is index 4, value 16)
-                # If bit 4 is set in both d_indices and d_in2, we get a -1 factor.
-                # Cl(4,1) metric: + + + + -
-                # Note: This kernel is specifically for 5D metric [+ + + + -] or similar. 
-                # For dynamic support, we should fallback or upgrade this kernel. 
-                # We'll leave it as a fast path for D=32.
                 metric_sign = 1.0 - 2.0 * ((d_indices & d_in2 & 16) >> 4)
 
                 # 2. Permutation Sign (Swaps)
-                # Calculate swaps required to reorder basis vectors
                 swaps = (d_in2 & 1) * tl.popc(d_indices & 30) + \
                         ((d_in2 >> 1) & 1) * tl.popc(d_indices & 28) + \
                         ((d_in2 >> 2) & 1) * tl.popc(d_indices & 24) + \
@@ -168,15 +154,14 @@ if HAS_TRITON:
                 
                 # sgn = (-1)^swaps
                 comm_sign = 1.0 - 2.0 * (swaps & 1)
-                
                 final_sign = metric_sign * comm_sign
                 
                 # Permutation and indexing for W components
-                # Load the permuted weight matrix within the Triton kernel
                 w_perm = tl.load(w_ptr + rn[:, None, None] * stride_wn + curr_k[None, :, None] * stride_wk + d_in2[None, None, :],
-                                  mask=(rn[:, None, None] < N) & (k_mask[None, :, None]))
+                                  mask=(rn[:, None, None] < N) & (k_mask[None, :, None])).to(tl.float32)
                 
                 # Inner product over (K, 32)
+                # We perform the multiplication in float32 to preserve precision
                 term = tl.sum(tl.sum(x[:, None, :, :] * w_perm[None, :, :, :] * final_sign[None, None, None, :], axis=3), axis=2)
                 acc[:, :, d_out] += term
 
@@ -189,13 +174,18 @@ if HAS_TRITON:
         offs = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
         mask = offs < M
         d_idx = tl.arange(0, n_dims)
-        sig = tl.load(sig_ptr + d_idx)
-        x = tl.load(x_ptr + offs[:, None] * n_dims + d_idx[None, :], mask=mask[:, None])
+        sig = tl.load(sig_ptr + d_idx).to(tl.float32)
+        x = tl.load(x_ptr + offs[:, None] * n_dims + d_idx[None, :], mask=mask[:, None]).to(tl.float32)
         
+        # Manifold norm calculation in full precision
         norm_sq = tl.sum(x * x * sig[None, :], axis=1)
         abs_norm = tl.sqrt(tl.abs(norm_sq) + eps)
         l2_norm = tl.sqrt(tl.sum(x * x, axis=1)) + eps
+        
+        # Prevent runaway energies even if the manifold projection is perfect
         denom = tl.maximum(tl.maximum(abs_norm, l2_norm), 1.0)
+        
+        # Store result, casting back if necessary (Triton handles the storage cast)
         tl.store(x_ptr + offs[:, None] * n_dims + d_idx[None, :], x / denom[:, None], mask=mask[:, None])
 
     def geometric_linear_triton_32(x, weight):
@@ -233,12 +223,9 @@ if HAS_TRITON:
         
         sig_vals_np = np.ones(n_dims, dtype=np.float32)
         for i in range(n_dims):
-            # Reversion: (-1)^(k(k-1)/2)
-            grade = bin(i).count('1')
-            if (grade * (grade - 1) // 2) % 2 == 1: 
-                sig_vals_np[i] *= -1.0
-            
-            # Metric: Product of squares of basis vectors present
+            # Metric: Product of squares of basis vectors present.
+            # This directly corresponds to <e_I * ~e_I>_0 because the reverse
+            # (-1)^(k(k-1)/2) exactly cancels the permutation sign of e_I * e_I.
             for b in range(D_basis):
                 if (i >> b) & 1:
                     val = signature[b]
@@ -269,27 +256,32 @@ if HAS_TRITON:
             x, weight = ctx.saved_tensors
             signature = ctx.signature
             
-            # Fallback to CPU-based gradient computation if a specialized 
-            # backward kernel is unavailable.
+            # =========================================================
+            # NUMERICAL STABILITY GUARDS (HARDENING)
+            # =========================================================
+            # Protect against NaN/Inf in the backward pass itself
+            grad_output = torch.nan_to_num(grad_output, nan=0.0, posinf=1.0, neginf=-1.0)
+            
+            # Stricter local clipping to prevent explosive gradients in geometry
+            # Geometric products can amplify errors exponentially; this clamps the signal.
+            grad_output = torch.clamp(grad_output, -50.0, 50.0)
             
             # S is (n_dims, n_dims)
             n_dims = x.shape[-1]
-            S = get_sign_matrix(signature, "numpy") # Get numpy version for CPU fallback
+            S = get_sign_matrix(signature, "numpy")
             S = torch.from_numpy(S).to(x.device)
             
-            idx = torch.arange(n_dims, device=x.device)
-            j_idx, i_idx = torch.meshgrid(idx, idx, indexing='ij')
-            k_idx = i_idx ^ j_idx 
-            
             # Grad Weight: (N, K, n_dims)
-            # sum_b (x_rev[b, k, i] * grad[b, n, j] * S[i, j])
             x_rev = reverse_torch(x, signature)
             grad_w = torch.einsum('bki, bnj, ij -> nkj', x_rev, grad_output, S)
             
             # Grad X: (B, K, n_dims)
-            # sum_n (grad[b, n, j] * w_rev[n, k, i] * S[j, i])
             w_rev = reverse_torch(weight, signature)
             grad_x = torch.einsum('bnj, nki, ji -> bki', grad_output, w_rev, S)
+            
+            # Additional clamp for safe optimizer feeding
+            grad_w = torch.clamp(grad_w, -10.0, 10.0)
+            grad_x = torch.clamp(grad_x, -10.0, 10.0)
             
             return grad_x, grad_w, None # None for signature
 
@@ -409,13 +401,9 @@ if HAS_MLX:
         D_basis = len(signature)
         indices = mx.arange(n_dims)
         
-        # Reversion sign
-        c = mx.zeros_like(indices)
-        for i in range(D_basis):
-            c += (indices >> i) & 1
-        reversion_sign = mx.where((c * (c - 1) // 2) % 2 == 1, -1.0, 1.0)
-        
         # Metric sign construction
+        # Product of squares of basis vectors intrinsically accounts for
+        # the reverse sign <e_I * ~e_I>_0
         sig_np = np.ones(n_dims, dtype=np.float32)
         for i in range(n_dims):
              for b in range(D_basis):
@@ -426,7 +414,7 @@ if HAS_MLX:
                          break
                      sig_np[i] *= val
         
-        sig = mx.array(sig_np) * reversion_sign
+        sig = mx.array(sig_np)
         norm_sq = mx.sum(x * x * sig, axis=-1, keepdims=True)
         abs_norm = mx.sqrt(mx.abs(norm_sq) + eps)
         l2_norm = mx.sqrt(mx.sum(x * x, axis=-1, keepdims=True)) + eps
@@ -545,8 +533,11 @@ def filtered_product(a, b, signature, mode="wedge"):
 # UNIFIED MULTI-BACKEND INTERFACE
 # =================================================================
 
-def geometric_product(a, b, signature):
-    # Multi-backend dispatching for geometric product
+def geometric_product(a, b, signature, method=None):
+    """
+    Multi-backend dispatching for geometric product.
+    preserves both Bit-Masked (Universal) and Matrix (Specialized) paths.
+    """
     is_numpy = False
     if isinstance(a, np.ndarray):
         a = torch.from_numpy(a)
@@ -554,6 +545,18 @@ def geometric_product(a, b, signature):
     if isinstance(b, np.ndarray):
         b = torch.from_numpy(b)
         is_numpy = True
+
+    # 1. Primary Dispatch: Explicit Method Selection
+    if method == "matrix":
+        return geometric_product_matrix(a, b)
+    elif method in ["triton", "bitmasked"]:
+        # Fallback to torch if on CPU; Triton only for CUDA
+        pass # Note: current kernel.py logic lacks a standalone geometric_product_triton
+
+    # 2. Intelligent Dispatch (Default)
+    # Matrix Isomorphism Path (Cl(4,1) specialized)
+    if x_is_cl41(a.shape[-1], signature) and method != "bitmasked":
+        return geometric_product_matrix(a, b)
 
     if HAS_MLX and (isinstance(a, mx.array) or isinstance(b, mx.array)):
         return geometric_product_mlx(a, b, signature)
@@ -606,6 +609,9 @@ def geometric_product_mlx(a, b, signature):
 # Aliases for different naming conventions
 gapu_geometric_product = geometric_product
 
+def x_is_cl41(ga_dim, signature):
+    return ga_dim == 32 and len(signature) == 5 and signature[4] == -1 and all(s == 1 for s in signature[:4])
+
 def geometric_linear_cpu(x, weight, signature):
     # CPU fallback for linear layer (same as geometric_product but with weight matrix)
     # x: (..., K, D), w: (N, K, D)
@@ -637,13 +643,35 @@ def geometric_linear_cpu(x, weight, signature):
         res = torch.einsum('bki, nkj i, ij -> bnj', x_flat, w_perm, S)
         return res.reshape(*x.shape[:-2], weight.shape[0], n_dims)
 
-def geometric_linear_layer(x, weight, signature):
+def geometric_linear_layer(x, weight, signature, method=None):
+    """
+    Hyper-Optimized Geometric Linear Layer with multiple execution engines.
+    - bitmasked: Custom Triton kernels (O(n D^2)) - the primary paper tech.
+    - matrix: Isomorphism-based GEMM (O(D^1.5)) - the high-speed turbo path.
+    """
+    # 1. Explicit Engine Selection
+    if method == "matrix":
+        return geometric_linear_layer_matrix(x, weight)
+    if method in ["triton", "bitmasked"]:
+        if x.is_cuda and HAS_TRITON:
+            return geometric_linear_layer_triton(x, weight, signature)
+        return geometric_linear_cpu(x, weight, signature)
+
+    # 2. Intelligent Auto-Dispatch
     if HAS_MLX and (isinstance(x, mx.array) or isinstance(weight, mx.array)):
         return geometric_linear_mlx(x, weight, signature)
+    
+    # Check for Matrix Isomorphism Support (Cl(4,1))
+    if x_is_cl41(x.shape[-1], signature):
+        # On CPU or if Triton is missing, Matrix is always faster.
+        # On CUDA, Matrix is usually faster than Triton bit-masked.
+        return geometric_linear_layer_matrix(x, weight)
+
+    # Fallback to specialized Triton Bit-Masked kernels on CUDA
     if isinstance(x, torch.Tensor) and HAS_TRITON and x.is_cuda:
         return geometric_linear_layer_triton(x, weight, signature)
     
-    # Robust CPU implementation with dimension handling
+    # Universal CPU fallback
     return geometric_linear_cpu(x, weight, signature)
     
 def manifold_normalization(x, signature, eps=1e-6):
