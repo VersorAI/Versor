@@ -613,35 +613,39 @@ def x_is_cl41(ga_dim, signature):
     return ga_dim == 32 and len(signature) == 5 and signature[4] == -1 and all(s == 1 for s in signature[:4])
 
 def geometric_linear_cpu(x, weight, signature):
-    # CPU fallback for linear layer (same as geometric_product but with weight matrix)
+    # Optimized CPU implementation using matmul
     # x: (..., K, D), w: (N, K, D)
-    n_dims = x.shape[-1]
+    ga_dim = x.shape[-1]
+    in_features = x.shape[-2]
+    out_features = weight.shape[0]
+    batch_shape = x.shape[:-2]
+    
     device = x.device if isinstance(x, torch.Tensor) else "cpu"
-    S = get_sign_matrix(signature, "numpy") # Get numpy version for CPU fallback
-    S = torch.from_numpy(S).to(device)
+    S = get_sign_matrix(signature, "numpy")
+    S = torch.from_numpy(S).to(device, dtype=x.dtype)
     
-    # We need: out[..., n, j] = sum_k sum_i (x[..., k, i] * weight[n, k, i^j] * S[i, j])
-    # weight_perm[n, k, j, i] = weight[n, k, i^j]
-    idx = torch.arange(n_dims, device=device)
+    # Pre-compute sign-weighted and permuted weights
+    # k_idx[j, i] = i ^ j
+    idx = torch.arange(ga_dim, device=device)
     j_idx, i_idx = torch.meshgrid(idx, idx, indexing='ij')
-    k_idx = i_idx ^ j_idx # (n_dims, n_dims) -> [j, i]
+    k_idx = i_idx ^ j_idx 
     
-    w_perm = weight[:, :, k_idx] # (N, K, n_dims, n_dims)
+    # w_perm: (N, K, j_basis, i_basis)
+    w_perm = weight[:, :, k_idx]
+    # Apply signs: S[i, j]
+    # weight[n, k, i^j] * S[i, j]
+    w_sgn = w_perm * S.T.view(1, 1, ga_dim, ga_dim) 
     
-    # Use einsum for clarity and correctness on CPU
-    # b: batch/sequence dims, n: out_features, k: in_features, j: out_basis, i: in_basis
-    if x.dim() == 3: # (B*S, K, n_dims) or (B, K, n_dims)
-        # x: bki, w_perm: nkj i, S: i j
-        # Actually w_perm already has i^j logic. 
-        # So: sum_k,i (x[..., k, i] * w_perm[n, k, j, i] * S[i, j])
-        return torch.einsum('bki, nkj i, ij -> bnj', x, w_perm, S)
-    elif x.dim() == 4: # (B, S, K, n_dims)
-        return torch.einsum('bski, nkj i, ij -> bsnj', x, w_perm, S)
-    else:
-        # Generic fallback for any number of batch dims
-        x_flat = x.reshape(-1, x.shape[-2], n_dims)
-        res = torch.einsum('bki, nkj i, ij -> bnj', x_flat, w_perm, S)
-        return res.reshape(*x.shape[:-2], weight.shape[0], n_dims)
+    # Flatten effectively for batched matmul
+    # X: (Batch, K * D), W: (N * D, K * D)
+    # Target: out[..., n, j] = sum_k sum_i x[..., k, i] * w_sgn[n, k, j, i]
+    # W_mat indices: (n*j, k*i)
+    W_mat = w_sgn.permute(0, 2, 1, 3).reshape(out_features * ga_dim, in_features * ga_dim)
+    X_flat = x.reshape(-1, in_features * ga_dim)
+    
+    Out_flat = X_flat @ W_mat.T
+    return Out_flat.reshape(*batch_shape, out_features, ga_dim)
+
 
 def geometric_linear_layer(x, weight, signature, method=None):
     """
