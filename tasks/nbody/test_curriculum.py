@@ -23,7 +23,7 @@ def train_model_on_length(model, seq_length, n_samples=100, epochs=20, device='c
     print(f"  Training on L={seq_length}...", end=' ', flush=True)
     
     # Generate training data
-    train_data = generate_gravity_data(n_samples=n_samples, n_steps=seq_length, device=device)
+    train_data, _ = generate_gravity_data(n_samples=n_samples, n_steps=seq_length, device=device)
     X_train = train_data[:, :-1]
     Y_train = train_data[:, 1:]
     
@@ -46,7 +46,7 @@ def evaluate_on_length(model, seq_length, n_samples=20, device='cpu'):
     """Evaluate model on specific sequence length"""
     model.eval()
     
-    test_data = generate_gravity_data(n_samples=n_samples, n_steps=seq_length, device=device)
+    test_data, _ = generate_gravity_data(n_samples=n_samples, n_steps=seq_length, device=device)
     X_test = test_data[:, :-1]
     Y_test = test_data[:, 1:]
     
