@@ -1,0 +1,6 @@
+{
+  "Baseline (Transformer)": "18.98 \u00b1 3.27",
+  "Strip LayerNorm": "8.67 \u00b1 1.39",
+  "Strip MLP": "19.16 \u00b1 5.64",
+  "Full Versor": "8.81 \u00b1 1.53"
+}
