@@ -11,39 +11,40 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'tasks/nbody')))
 from models import VersorRotorRNN, StandardTransformer, GraphNetworkSimulator
 
-def measure_resource_usage(model, device, seq_length, n_particles=5, input_dim=6):
+def measure_resource_usage(model, device, seq_length, n_particles=5, input_dim=6, n_warmup=20, n_iters=30):
     """
-    Measures memory usage and latency for a single forward pass.
+    Measures memory usage and latency with warmups and multiple iterations.
     """
     batch_size = 1
     x = torch.randn(batch_size, seq_length, n_particles, input_dim).to(device)
     
-    # Synchronize for timing
+    # Warmup
+    with torch.no_grad():
+        for _ in range(n_warmup):
+            _ = model(x)
+    
     if device == 'cuda':
         torch.cuda.synchronize()
-    
-    start_time = time.time()
-    
-    # Reset memory stats
-    if device == 'cuda':
         torch.cuda.reset_peak_memory_stats()
     
+    latencies = []
     try:
-        with torch.no_grad():
-            _ = model(x)
+        for _ in range(n_iters):
+            start_time = time.time()
+            with torch.no_grad():
+                _ = model(x)
+            if device == 'cuda':
+                torch.cuda.synchronize()
+            end_time = time.time()
+            latencies.append((end_time - start_time) * 1000)
+            
+        latency = float(np.median(latencies))
         
-        if device == 'cuda':
-            torch.cuda.synchronize()
-        end_time = time.time()
-        
-        latency = (end_time - start_time) * 1000 # ms
         memory = 0
         if device == 'cuda':
             memory = torch.cuda.max_memory_allocated() / (1024 * 1024) # MB
         else:
             import resource
-            import sys
-            # ru_maxrss is in bytes on Mac, KB on Linux
             if sys.platform == 'darwin':
                 memory = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1024 * 1024)
             else:
