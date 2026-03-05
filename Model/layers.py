@@ -82,7 +82,10 @@ class VersorAttention(nn.Module):
         sig_diag = torch.from_numpy(sig_diag).to(q.device, dtype=q.dtype)
         
         q_sig = q_flat * sig_diag.view(1, 1, 1, self.ga_dim)
-        scalar_score = torch.einsum('b i d l, b j d l -> b i j', q_sig, k_flat)
+        # Optimized path: Reshape and use bmm for O(L^2) contraction
+        q_sig_flat_inner = q_sig.reshape(batch * self.n_heads, seq, -1)
+        k_flat_inner = k_flat.reshape(batch * self.n_heads, seq, -1)
+        scalar_score = torch.bmm(q_sig_flat_inner, k_flat_inner.transpose(1, 2))
         
         q_norm_sq = torch.sum(q_flat**2, dim=(-1, -2)).view(batch * self.n_heads, seq, 1)
         k_norm_sq = torch.sum(k_flat**2, dim=(-1, -2)).view(batch * self.n_heads, 1, seq)
