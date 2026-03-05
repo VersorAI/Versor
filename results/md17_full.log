@@ -1,0 +1,56 @@
+Loading MD17 (Salicylic) from /Users/mac/Desktop/Versor/data/md17/rmd17/npz_data/rmd17_salicylic.npz...
+Training on 50000 samples... (STD: 5.6148)
+Initializing Matrix mapping for cpu...
+  Epoch 1 | Step 100 | MSE: 0.961945
+  Epoch 1 | Step 200 | MSE: 0.959047
+  Epoch 1 | Step 300 | MSE: 1.462816
+  Epoch 1 | Step 400 | MSE: 1.387691
+  Epoch 1 | Step 500 | MSE: 0.552775
+  Epoch 1 | Step 600 | MSE: 0.952749
+  Epoch 1 | Step 700 | MSE: 1.268763
+  Epoch 1 | Step 800 | MSE: 0.493346
+  Epoch 1 | Step 900 | MSE: 0.735003
+  Epoch 1 | Step 1000 | MSE: 1.017272
+  Epoch 1 | Step 1100 | MSE: 1.224097
+  Epoch 1 | Step 1200 | MSE: 0.672636
+  Epoch 1 | Step 1300 | MSE: 0.655669
+  Epoch 1 | Step 1400 | MSE: 0.826375
+  Epoch 1 | Step 1500 | MSE: 1.491493
+Epoch 1 Result | Train MSE: 29.4990 | Val MSE: 27.6213
+  Epoch 2 | Step 100 | MSE: 0.635353
+  Epoch 2 | Step 200 | MSE: 0.466330
+  Epoch 2 | Step 300 | MSE: 0.777023
+  Epoch 2 | Step 400 | MSE: 0.851403
+  Epoch 2 | Step 500 | MSE: 1.176252
+  Epoch 2 | Step 600 | MSE: 0.940265
+  Epoch 2 | Step 700 | MSE: 0.697860
+  Epoch 2 | Step 800 | MSE: 0.592382
+  Epoch 2 | Step 900 | MSE: 0.634180
+  Epoch 2 | Step 1000 | MSE: 1.356295
+  Epoch 2 | Step 1100 | MSE: 0.897778
+  Epoch 2 | Step 1200 | MSE: 0.750603
+  Epoch 2 | Step 1300 | MSE: 1.131991
+  Epoch 2 | Step 1400 | MSE: 1.007958
+  Epoch 2 | Step 1500 | MSE: 0.715742
+Epoch 2 Result | Train MSE: 27.1275 | Val MSE: 26.1472
+  Epoch 3 | Step 100 | MSE: 0.704578
+  Epoch 3 | Step 200 | MSE: 0.873719
+  Epoch 3 | Step 300 | MSE: 0.398721
+  Epoch 3 | Step 400 | MSE: 0.569788
+  Epoch 3 | Step 500 | MSE: 0.961262
+  Epoch 3 | Step 600 | MSE: 0.781123
+  Epoch 3 | Step 700 | MSE: 0.494332
+  Epoch 3 | Step 800 | MSE: 0.740373
+  Epoch 3 | Step 900 | MSE: 1.009562
+  Epoch 3 | Step 1000 | MSE: 0.774270
+  Epoch 3 | Step 1100 | MSE: 0.731284
+  Epoch 3 | Step 1200 | MSE: 1.015084
+  Epoch 3 | Step 1300 | MSE: 0.857456
+  Epoch 3 | Step 1400 | MSE: 0.776125
+  Epoch 3 | Step 1500 | MSE: 0.832022
+Epoch 3 Result | Train MSE: 26.3463 | Val MSE: 25.6195
+  Epoch 4 | Step 100 | MSE: 0.496550
+  Epoch 4 | Step 200 | MSE: 0.608955
+  Epoch 4 | Step 300 | MSE: 0.659596
+  Epoch 4 | Step 400 | MSE: 1.041355
+  Epoch 4 | Step 500 | MSE: 1.034677

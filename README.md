@@ -103,6 +103,15 @@ cd tasks/nbody
 # See task-specific README for details
 ```
 
+### Real-world Benchmarks (Full Data)
+```bash
+# Molecular Dynamics (MD17 Salicylic Acid)
+python tasks/real_world/run_md17_real.py
+
+# Language Modeling (WikiText-103 Character-level)
+python tasks/real_world/run_wikitext103_real.py
+```
+
 ## 📊 Benchmarking
 
 Run comprehensive benchmarks:

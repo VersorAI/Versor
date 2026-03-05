@@ -1,0 +1,27 @@
+>>> [DEBUG] train_wikitext() started
+Loading WikiText-103 from /Users/mac/Desktop/Versor/wiki.train.tokens...
+Vocab Size: 198
+Starting Training on cpu...
+Initializing Matrix mapping for cpu...
+Step 1/1000 | Loss: 5.2907 | Perp: 198.4799 | BPC: 7.6328
+Step 2/1000 | Loss: 5.2321 | Perp: 187.1931 | BPC: 7.5484
+Step 3/1000 | Loss: 5.1735 | Perp: 176.5312 | BPC: 7.4638
+Step 4/1000 | Loss: 5.1182 | Perp: 167.0389 | BPC: 7.3840
+Step 5/1000 | Loss: 5.0590 | Perp: 157.4300 | BPC: 7.2986
+Step 6/1000 | Loss: 5.0060 | Perp: 149.2993 | BPC: 7.2221
+Step 7/1000 | Loss: 4.9508 | Perp: 141.2931 | BPC: 7.1425
+Step 8/1000 | Loss: 4.8999 | Perp: 134.2763 | BPC: 7.0691
+Step 9/1000 | Loss: 4.8418 | Perp: 126.6968 | BPC: 6.9852
+Step 10/1000 | Loss: 4.7777 | Perp: 118.8309 | BPC: 6.8928
+Step 100/1000 | Loss: 2.5535 | Perp: 12.8514 | BPC: 3.6839
+Step 200/1000 | Loss: 2.4670 | Perp: 11.7867 | BPC: 3.5591
+Step 300/1000 | Loss: 2.3823 | Perp: 10.8293 | BPC: 3.4369
+Step 400/1000 | Loss: 2.3600 | Perp: 10.5914 | BPC: 3.4048
+Step 500/1000 | Loss: 2.3253 | Perp: 10.2293 | BPC: 3.3546
+Step 600/1000 | Loss: 2.3546 | Perp: 10.5343 | BPC: 3.3970
+Step 700/1000 | Loss: 2.2860 | Perp: 9.8351 | BPC: 3.2979
+Step 800/1000 | Loss: 2.2815 | Perp: 9.7917 | BPC: 3.2916
+Step 900/1000 | Loss: 2.2667 | Perp: 9.6478 | BPC: 3.2702
+Step 1000/1000 | Loss: 2.2688 | Perp: 9.6682 | BPC: 3.2733
+Final Validation...
+Validation Result: Loss 2.2790 | Perplexity 9.7669 | BPC 3.2879
