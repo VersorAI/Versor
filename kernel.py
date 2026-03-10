@@ -193,7 +193,7 @@ if HAS_TRITON:
         abs_norm = tl.sqrt(tl.abs(norm_sq) + eps)
         l2_norm = tl.sqrt(tl.sum(x * x, axis=1)) + eps
         denom = tl.maximum(tl.maximum(abs_norm, l2_norm), 1.0)
-        tl.store(x_ptr + offs[:, None] * 32 + d_idx[None, :], x / denom[:, None], mask=mask[:, None])
+        tl.store(x_ptr + offs[:, None] * 32 + d_indices[None, :], x / denom[:, None], mask=mask[:, None])
 
     def geometric_linear(x, weight):
         oriv_s_versorhape = x.shape
@@ -217,12 +217,9 @@ if HAS_TRITON:
         M = x.numel() // 32
         sig = torch.ones(32, device=x.device)
         for i in range(32):
-            # Reversion: (-1)^(k(k-1)/2)
-            grade = bin(i).count('1')
-            if (grade * (grade - 1) // 2) % 2 == 1: 
-                sig[i] *= -1.0
-            
-            # Metric: Product of squares of basis vectors present
+            # Metric: Product of squares of basis vectors present.
+            # This directly corresponds to <e_I * ~e_I>_0 because the reverse
+            # (-1)^(k(k-1)/2) exactly cancels the permutation sign of e_I * e_I.
             for b in range(5):
                 if (i >> b) & 1:
                     val = _METRIC[b]
@@ -246,31 +243,28 @@ if HAS_TRITON:
         @staticmethod
         def backward(ctx, grad_output):
             x, weight = ctx.saved_tensors
-            # To compute gradients, we use the property that geometric product derivative
-            # involves the reverse of the other operand.
-            # grad_x = grad_output * reverse(weight)
-            # grad_weight = reverse(x) * grad_output
+            device = x.device
+            n_dims = 32
             
-            # Fallback to CPU-based gradient computation if a specialized 
-            # backward kernel is unavailable.
-            
-            # S is (32, 32)
-            S = torch.from_numpy(get_sign_matrix("numpy")).to(x.device)
-            idx = torch.arange(32, device=x.device)
+            # Prepare Sign Matrix and Index Permutation
+            S = torch.from_numpy(get_sign_matrix("numpy")).to(device)
+            idx = torch.arange(n_dims, device=device)
             j_idx, i_idx = torch.meshgrid(idx, idx, indexing='ij')
             k_idx = i_idx ^ j_idx 
             
             # Grad Weight: (N, K, 32)
-            # sum_b (x_rev[b, k, i] * grad[b, n, j] * S[i, j])
-            x_rev = reverse_torch(x)
-            grad_w = torch.einsum('bki, bnj, ij -> nkj', x_rev, grad_output, S)
+            # Grad Weight: (N, K, 32)
+            # sum_b (grad[b, n, j] * x[b, k, j^m] * S[j^m, m])
+            x_perm = x[:, :, k_idx] 
+            S_w = S[k_idx, j_idx]
+            grad_w = torch.einsum('bnj, bkjm, jm -> nkm', grad_output, x_perm, S_w)
             
             # Grad X: (B, K, 32)
-            # sum_n (grad[b, n, j] * w_rev[n, k, i] * S[j, i])
-            w_rev = reverse_torch(weight)
-            grad_x = torch.einsum('bnj, nki, ji -> bki', grad_output, w_rev, S)
+            # sum_n (grad[b, n, j] * w[n, k, i^j] * S[i, j])
+            w_perm = weight[:, :, k_idx]
+            grad_x = torch.einsum('bnj, nkji, ij -> bki', grad_output, w_perm, S)
             
-            return grad_x, grad_w
+            return grad_x, grad_w, None # Added None for consistency if needed
 
     def geometric_linear_layer_triton(x, weight):
         return VersorLinearFunction.apply(x, weight)
