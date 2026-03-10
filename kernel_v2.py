@@ -233,12 +233,9 @@ if HAS_TRITON:
         
         sig_vals_np = np.ones(n_dims, dtype=np.float32)
         for i in range(n_dims):
-            # Reversion: (-1)^(k(k-1)/2)
-            grade = bin(i).count('1')
-            if (grade * (grade - 1) // 2) % 2 == 1: 
-                sig_vals_np[i] *= -1.0
-            
-            # Metric: Product of squares of basis vectors present
+            # Metric: Product of squares of basis vectors present.
+            # This directly corresponds to <e_I * ~e_I>_0 because the reverse
+            # (-1)^(k(k-1)/2) exactly cancels the permutation sign of e_I * e_I.
             for b in range(D_basis):
                 if (i >> b) & 1:
                     val = signature[b]
@@ -281,15 +278,28 @@ if HAS_TRITON:
             j_idx, i_idx = torch.meshgrid(idx, idx, indexing='ij')
             k_idx = i_idx ^ j_idx 
             
+            # =========================================================
+            # RIGOROUS GEOMETRIC GRADIENT COMPUTATION
+            # =========================================================
+            n_dims = x.shape[-1]
+            device = x.device
+            
+            # Prepare Sign Matrix and Index Permutation
+            S_full = torch.from_numpy(get_sign_matrix(signature, "numpy")).to(device)
+            idx = torch.arange(n_dims, device=device)
+            j_idx, i_idx = torch.meshgrid(idx, idx, indexing='ij')
+            k_idx = i_idx ^ j_idx 
+            
             # Grad Weight: (N, K, n_dims)
-            # sum_b (x_rev[b, k, i] * grad[b, n, j] * S[i, j])
-            x_rev = reverse_torch(x, signature)
-            grad_w = torch.einsum('bki, bnj, ij -> nkj', x_rev, grad_output, S)
+            # sum_b (grad[b, n, j] * x[b, k, j^m] * S[j^m, m])
+            x_perm = x[:, :, k_idx] 
+            S_w = S_full[k_idx, j_idx]
+            grad_w = torch.einsum('bnj, bkjm, jm -> nkm', grad_output, x_perm, S_w)
             
             # Grad X: (B, K, n_dims)
-            # sum_n (grad[b, n, j] * w_rev[n, k, i] * S[j, i])
-            w_rev = reverse_torch(weight, signature)
-            grad_x = torch.einsum('bnj, nki, ji -> bki', grad_output, w_rev, S)
+            # sum_n (grad[b, n, j] * w[n, k, i^j] * S[i, j])
+            w_perm = weight[:, :, k_idx]
+            grad_x = torch.einsum('bnj, nkji, ij -> bki', grad_output, w_perm, S_full)
             
             return grad_x, grad_w, None # None for signature
 
@@ -409,13 +419,9 @@ if HAS_MLX:
         D_basis = len(signature)
         indices = mx.arange(n_dims)
         
-        # Reversion sign
-        c = mx.zeros_like(indices)
-        for i in range(D_basis):
-            c += (indices >> i) & 1
-        reversion_sign = mx.where((c * (c - 1) // 2) % 2 == 1, -1.0, 1.0)
-        
         # Metric sign construction
+        # Product of squares of basis vectors intrinsically accounts for
+        # the reverse sign <e_I * ~e_I>_0
         sig_np = np.ones(n_dims, dtype=np.float32)
         for i in range(n_dims):
              for b in range(D_basis):
@@ -426,7 +432,7 @@ if HAS_MLX:
                          break
                      sig_np[i] *= val
         
-        sig = mx.array(sig_np) * reversion_sign
+        sig = mx.array(sig_np)
         norm_sq = mx.sum(x * x * sig, axis=-1, keepdims=True)
         abs_norm = mx.sqrt(mx.abs(norm_sq) + eps)
         l2_norm = mx.sqrt(mx.sum(x * x, axis=-1, keepdims=True)) + eps
