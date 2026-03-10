@@ -2,14 +2,16 @@
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
-try:
-    import kernel as algebra
-except ImportError:
-    import sys
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-    import kernel as algebra
+import os
+import sys
 
-from Physics.models import VersorPhysicsTransformer
+# Ensure root is in path
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
+import tasks.nbody.models as nbody_models
+from tasks.nbody.models import VersorPhysicsTransformer
 
 def visualize_torque():
     print("Generating Torque Visualization...")
@@ -74,8 +76,8 @@ def visualize_torque():
     
     plt.suptitle("Geometric Attention Decomposition: Separating Force from Torque", fontsize=16, y=1.05)
     plt.tight_layout()
-    plt.savefig("Paper/torque_vis.png", dpi=300, bbox_inches='tight')
-    print("Saved Paper/torque_vis.png")
+    plt.savefig("paper/torque_vis.png", dpi=300, bbox_inches='tight')
+    print("Saved paper/torque_vis.png")
 
 if __name__ == "__main__":
     visualize_torque()
