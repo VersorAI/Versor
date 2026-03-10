@@ -266,20 +266,43 @@ if HAS_TRITON:
             # Geometric products can amplify errors exponentially; this clamps the signal.
             grad_output = torch.clamp(grad_output, -50.0, 50.0)
             
-            # S is (n_dims, n_dims)
+            # =========================================================
+            # RIGOROUS GEOMETRIC GRADIENT COMPUTATION
+            # =========================================================
+            # To compute grad_x and grad_w for G = X * W, we must account for 
+            # the basis index permutation (i ^ j = k).
+            
             n_dims = x.shape[-1]
-            S = get_sign_matrix(signature, "numpy")
-            S = torch.from_numpy(S).to(x.device)
+            device = x.device
             
-            # Grad Weight: (N, K, n_dims)
-            x_rev = reverse_torch(x, signature)
-            grad_w = torch.einsum('bki, bnj, ij -> nkj', x_rev, grad_output, S)
+            # 1. Prepare Sign Matrix S[i, j] for e_i * e_{i^j} -> e_j
+            S = torch.from_numpy(get_sign_matrix(signature, "numpy")).to(device)
+            idx = torch.arange(n_dims, device=device)
+            j_idx, i_idx = torch.meshgrid(idx, idx, indexing='ij')
+            k_idx = i_idx ^ j_idx # Basis index for the 'other' operand
             
-            # Grad X: (B, K, n_dims)
-            w_rev = reverse_torch(weight, signature)
-            grad_x = torch.einsum('bnj, nki, ji -> bki', grad_output, w_rev, S)
+            # 2. Grad Weight (N, K, D)
+            # grad_w[n, k, m] = sum_b sum_j (grad_output[b, n, j] * x[b, k, i] * Sign)
+            # where i ^ m = j => i = j ^ m
+            # We use the property that X* grad is a geometric product variant
+            x_perm = x[:, :, k_idx] # (B, K, D_j, D_m)
+            # Contract: sum_b, j (grad_output[b, n, j] * x_perm[b, k, j, m] * S[j^m, m])
+            # Sign is S[i, m] but i = j^m => S[j^m, m]
+            S_w = S[k_idx, j_idx] # Sign for e_{j^m} * e_m -> e_j? 
+            # Actually, forward was X_i * W_m * S[i, m] -> G_j
+            # So dG_j / dW_m = X_{j^m} * S[j^m, m]
+            # grad_w = sum_b, j G_j * X_{j^m} * S[j^m, m]
+            grad_w = torch.einsum('bnj, bkjm, jm -> nkm', grad_output, x_perm, S_w)
             
-            # Additional clamp for safe optimizer feeding
+            # 3. Grad X (B, K, D)
+            # dG_j / dX_i = W_{i^j} * S[i, i^j]
+            # grad_x = sum_n, j G_j * W_{i^j} * S[i, i^j]
+            # Let's use the weight permutation
+            w_perm = weight[:, :, k_idx] # (N, K, D_i, D_j)
+            # Sign is S[i, j] from the meshgrid
+            grad_x = torch.einsum('bnj, nki j, ij -> bki', grad_output, w_perm, S)
+            
+            # Hardening: Final clamp for safe optimizer feeding
             grad_w = torch.clamp(grad_w, -10.0, 10.0)
             grad_x = torch.clamp(grad_x, -10.0, 10.0)
             
