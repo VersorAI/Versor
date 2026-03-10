@@ -1,0 +1,37 @@
+{
+  "live_sanity_check": [
+    {
+      "Condition": "Baseline (Transformer)",
+      "Initial_MSE": 3.624155282974243
+    },
+    {
+      "Condition": "Strip LayerNorm",
+      "Initial_MSE": 0.01975846476852894
+    },
+    {
+      "Condition": "Full Versor",
+      "Initial_MSE": 0.019167739897966385
+    }
+  ],
+  "verified_results": [
+    {
+      "Condition": "Baseline (Transformer)",
+      "Stored_MSE": 3.624155282974243,
+      "Paper_MSE": 19.0,
+      "Verified": false
+    },
+    {
+      "Condition": "Strip LayerNorm",
+      "Stored_MSE": 0.01975846476852894,
+      "Paper_MSE": 8.7,
+      "Verified": false
+    },
+    {
+      "Condition": "Full Versor",
+      "Stored_MSE": 0.019167739897966385,
+      "Paper_MSE": 8.8,
+      "Verified": false
+    }
+  ],
+  "source_file": "results/ablation_replacement_stats.json"
+}

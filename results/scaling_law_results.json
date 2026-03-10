@@ -1,27 +1,29 @@
 [
   {
-    "params": 404490,
-    "final_loss": 3.9503881216049193,
+    "params": 53768,
+    "final_loss": 4.6321914935112,
+    "val_loss": 2.8243116637070975,
+    "config": {
+      "embed_dim": 8,
+      "n_layers": 2
+    }
+  },
+  {
+    "params": 408586,
+    "final_loss": 2.781207573711872,
+    "val_loss": 1.9168582657972972,
     "config": {
       "embed_dim": 16,
       "n_layers": 4
     }
   },
   {
-    "params": 901642,
-    "final_loss": 1.8169323080778121,
+    "params": 907786,
+    "final_loss": 13.80469870954752,
+    "val_loss": 0.6452250828345617,
     "config": {
       "embed_dim": 24,
       "n_layers": 4
-    }
-  },
-  {
-    "params": 52744,
-    "final_loss": 5.20461807012558,
-    "val_loss": 1.9291605800390244,
-    "config": {
-      "embed_dim": 8,
-      "n_layers": 2
     }
   }
 ]

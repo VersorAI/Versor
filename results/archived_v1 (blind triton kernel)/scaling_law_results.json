@@ -1,0 +1,27 @@
+[
+  {
+    "params": 404490,
+    "final_loss": 3.9503881216049193,
+    "config": {
+      "embed_dim": 16,
+      "n_layers": 4
+    }
+  },
+  {
+    "params": 901642,
+    "final_loss": 1.8169323080778121,
+    "config": {
+      "embed_dim": 24,
+      "n_layers": 4
+    }
+  },
+  {
+    "params": 52744,
+    "final_loss": 5.20461807012558,
+    "val_loss": 1.9291605800390244,
+    "config": {
+      "embed_dim": 8,
+      "n_layers": 2
+    }
+  }
+]

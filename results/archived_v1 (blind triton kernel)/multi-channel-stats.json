@@ -1,0 +1,34 @@
+{
+  "timestamp": "2026-02-04T18:55:02.527942",
+  "seeds": [
+    42
+  ],
+  "all_results": {
+    "seed_42": {
+      "Versor-Multi": {
+        "mse": 3.0672922134399414,
+        "energy_drift_pct": 144.31393170443621,
+        "latency": 5.454063415527344
+      }
+    }
+  },
+  "statistics": {
+    "Versor-Multi": {
+      "mse_mean": 3.0672922134399414,
+      "mse_std": 0.0,
+      "mse_min": 3.0672922134399414,
+      "mse_max": 3.0672922134399414,
+      "drift_mean": 144.31393170443621,
+      "drift_std": 0.0,
+      "latency_mean": 5.454063415527344,
+      "n_runs": 1
+    }
+  },
+  "config": {
+    "n_samples": 200,
+    "n_steps": 100,
+    "epochs": 30,
+    "device": "cpu",
+    "note": "Fair Comparison: Versor-Multi uses 16 channels and Clifford-equivariant activation/mixing to match baseline capacity."
+  }
+}

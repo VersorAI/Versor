@@ -1,0 +1,30 @@
+{
+  "nlp": {
+    "mean_perplexity": 3.661815222476105,
+    "std_perplexity": 0.004711929531231294,
+    "mean_bpc": 1.8725577992272135,
+    "std_bpc": 0.0018564663445498094,
+    "runs": 5
+  },
+  "vision": {
+    "mean_accuracy": 1.0,
+    "std_accuracy": 0.0,
+    "runs": 5
+  },
+  "graph": {
+    "mean_mse": 1.059193740040064,
+    "std_mse": 0.04382503240807172,
+    "runs": 5
+  },
+  "metadata": {
+    "duration_total": 504.7686789035797,
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "timestamp": "2026-03-10T18:21:40.917376"
+  }
+}
