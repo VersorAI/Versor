@@ -12,7 +12,7 @@ from tqdm import tqdm
 # Add parent directory to path to import Model
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from Model.model import VersorTransformer
-from Physics.data_gen import generate_gravity_data
+from nbody.data_gen import generate_gravity_data
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
