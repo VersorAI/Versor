@@ -8,13 +8,9 @@ import os
 import time
 
 # Add paths
-root_dir = os.getcwd()
-if root_dir not in sys.path:
-    sys.path.append(root_dir)
-
-from Physics.data_gen import generate_gravity_data
-from Physics.models import StandardTransformer
-import kernel as algebra
+from tasks.nbody.data_gen import generate_gravity_data
+from tasks.nbody.models import StandardTransformer
+import gacore.kernel as algebra
 
 class VersorAblation(nn.Module):
     def __init__(self, use_norm=True, use_recursive=True, input_dim=6, hidden_channels=16, n_particles=5):
@@ -26,6 +22,7 @@ class VersorAblation(nn.Module):
         
         self.proj_in = nn.Linear(input_dim, hidden_channels * 32)
         self.proj_out = nn.Linear(hidden_channels * 32, input_dim)
+        self.signature = [1, 1, 1, 1, -1]
         
     def forward(self, x):
         B, S, N, D = x.shape
@@ -43,17 +40,17 @@ class VersorAblation(nn.Module):
                 delta_r = u_t.clone()
                 delta_r[..., 0] += 1.0 
                 if self.use_norm:
-                    delta_r = algebra.manifold_normalization(delta_r)
+                    delta_r = algebra.manifold_normalization(delta_r, self.signature)
                 
                 # Multiplicative Update
-                psi = algebra.geometric_product(delta_r, psi)
+                psi = algebra.geometric_product(delta_r, psi, self.signature)
                 if self.use_norm:
-                    psi = algebra.manifold_normalization(psi)
+                    psi = algebra.manifold_normalization(psi, self.signature)
             else:
                 # Simple linear recurrence in MV space (Ablation)
                 psi = psi + u_t
                 if self.use_norm:
-                    psi = algebra.manifold_normalization(psi)
+                    psi = algebra.manifold_normalization(psi, self.signature)
             
             out_emb = psi
             pred_delta = self.proj_out(out_emb.reshape(B, N, -1))
