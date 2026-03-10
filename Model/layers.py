@@ -110,7 +110,10 @@ class VersorAttention(nn.Module):
         out = self.o_proj(out)
         
         if return_attention:
-            return out, attn_probs
+            # Reshape for visualization
+            s_out = scalar_score.view(batch, self.n_heads, seq, seq)
+            b_out = bivector_norm.view(batch, self.n_heads, seq, seq)
+            return out, (s_out, b_out)
         return out
 
     def __repr__(self):
