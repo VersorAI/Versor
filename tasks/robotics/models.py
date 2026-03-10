@@ -8,7 +8,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 sys.path.append(root_dir)
 sys.path.append(os.path.join(root_dir, "library"))
 
-from Model.model import manifold_normalization
+from gacore.kernel import manifold_normalization
 from tasks.nbody import algebra # Reusing the GA kernels from nbody task
 
 class BaselineGRU(nn.Module):
@@ -36,6 +36,7 @@ class VersorOdometry(nn.Module):
     def __init__(self, input_dim=6, hidden_channels=8):
         super().__init__()
         self.hidden_channels = hidden_channels
+        self.signature = [1, 1, 1, 1, -1] # Cl(4,1) for Versor
         
         # Project noisy velocities to incremental rotor parameters
         # (B, S, 6) -> (B, S, H, 32)
@@ -66,17 +67,17 @@ class VersorOdometry(nn.Module):
             # Map to manifold (Identity + epsilon)
             delta_r = u_t.clone()
             delta_r[..., 0] += 1.0 
-            delta_r = manifold_normalization(delta_r)
+            delta_r = manifold_normalization(delta_r, self.signature)
             
             # Group action: Multiplicative accumulation
             # psi_{t+1} = delta_r * psi_t
             psi = algebra.geometric_product(delta_r, psi)
-            psi = manifold_normalization(psi)
+            psi = manifold_normalization(psi, self.signature)
             
             # Project high-dim hidden state to target 32D rotor 
             # and project back to manifold
             out_rotor = self.proj_out(psi.reshape(B, -1))
-            out_rotor = manifold_normalization(out_rotor)
+            out_rotor = manifold_normalization(out_rotor, self.signature)
             outputs.append(out_rotor)
             
         return torch.stack(outputs, dim=1)
