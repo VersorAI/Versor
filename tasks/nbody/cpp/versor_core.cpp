@@ -103,6 +103,26 @@ inline void complex_matmul_4x4(const float *A, const float *B, float *Out) {
   }
 }
 
+// Complex Matrix-Vector Multiplication (Spinor update)
+// M is 4x4 complex matrix (32 floats), V is 4x1 complex vector (8 floats)
+inline void complex_matvec_4x4(const float *M, const float *V, float *Out) {
+  std::fill(Out, Out + 8, 0.0f);
+  for (int i = 0; i < 4; i++) {
+    float re = 0.0f, im = 0.0f;
+    for (int k = 0; k < 4; k++) {
+      // M[i,k] * V[k]
+      float mre = M[(i * 4 + k) * 2];
+      float mim = M[(i * 4 + k) * 2 + 1];
+      float vre = V[k * 2];
+      float vim = V[k * 2 + 1];
+      re += mre * vre - mim * vim;
+      im += mre * vim + mim * vre;
+    }
+    Out[i * 2] = re;
+    Out[i * 2 + 1] = im;
+  }
+}
+
 // Map Geometric Vector to 4x4 Complex Matrix
 inline void ga_to_matrix_local(const float *x, float *m) {
   std::fill(m, m + 32, 0.0f);
@@ -222,7 +242,81 @@ torch::Tensor rra_scan_forward(torch::Tensor input, bool use_matrix) {
   return output;
 }
 
+// Separate Spinor Kernel: Recursive Rotor Accumulator with Spinor State
+// Input: (B, S, N, H, 32) Rotors, Output: (B, S, N, H, 8) Spinors
+torch::Tensor rra_spinor_scan_forward(torch::Tensor input) {
+  auto input_contig = input.contiguous().cpu();
+  if (!initialized)
+    init_sign_matrix();
+
+  auto B_count = input_contig.size(0);
+  auto S_len = input_contig.size(1);
+  auto N = input_contig.size(2);
+  auto H = input_contig.size(3);
+
+  // Spinor state is 8 floats (4 complex)
+  auto output = torch::zeros({B_count, S_len, N, H, 8}, torch::kFloat32);
+  float *in_ptr = input_contig.data_ptr<float>();
+  float *out_ptr = output.data_ptr<float>();
+
+  int64_t total_tasks = B_count * N * H;
+
+  at::parallel_for(0, total_tasks, 1, [&](int64_t start, int64_t end) {
+    for (int64_t task_idx = start; task_idx < end; task_idx++) {
+      int64_t rem = task_idx;
+      int64_t h = rem % H;
+      rem /= H;
+      int64_t n = rem % N;
+      int64_t b = rem / N;
+
+      int64_t batch_stride = S_len * N * H * 32;
+      int64_t step_stride = N * H * 32;
+      int64_t out_step_stride = N * H * 8;
+      int64_t n_stride = H * 32;
+      int64_t h_stride = 32;
+
+      int64_t in_base_offset = b * batch_stride + n * n_stride + h * h_stride;
+      int64_t out_base_offset = b * (S_len * N * H * 8) + n * (H * 8) + h * 8;
+
+      float psi[8] = {0.0f};
+      psi[0] = 1.0f; // Identity spinor column
+
+      for (int t = 0; t < S_len; t++) {
+        float *current_in = in_ptr + in_base_offset + t * step_stride;
+        float *current_out = out_ptr + out_base_offset + t * out_step_stride;
+
+        float vec_r[32];
+        for (int i = 0; i < 32; i++)
+          vec_r[i] = current_in[i];
+        vec_r[0] += 1.0f;
+        manifold_normalization_single(vec_r);
+
+        float m_r[32];
+        ga_to_matrix_local(vec_r, m_r);
+
+        float next_psi[8];
+        complex_matvec_4x4(m_r, psi, next_psi);
+
+        // Optional: Spinor normalization
+        float sum_sq = 0.0f;
+        for (int i = 0; i < 8; i++)
+          sum_sq += next_psi[i] * next_psi[i];
+        float inv_norm = 1.0f / (std::sqrt(sum_sq) + 1e-8f);
+
+        for (int i = 0; i < 8; i++) {
+          psi[i] = next_psi[i] * inv_norm;
+          current_out[i] = psi[i];
+        }
+      }
+    }
+  });
+
+  return output;
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("rra_scan_forward", &rra_scan_forward,
         "Versor RRA Scan Forward (CPU/Matrix/Bitmasked)");
+  m.def("rra_spinor_scan_forward", &rra_spinor_scan_forward,
+        "Versor RRA Spinor Scan Forward (Spinor/Turbo)");
 }
