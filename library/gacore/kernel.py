@@ -182,8 +182,11 @@ if HAS_TRITON:
         abs_norm = tl.sqrt(tl.abs(norm_sq) + eps)
         l2_norm = tl.sqrt(tl.sum(x * x, axis=1)) + eps
         
-        # Prevent runaway energies even if the manifold projection is perfect
-        denom = tl.maximum(tl.maximum(abs_norm, l2_norm), 1.0)
+        # CGA-Safe Guard: Translation rotors have L2 norm > 1.0. 
+        # We only cap by the manifold norm (abs_norm) and a large safety margin for L2.
+        denom = tl.maximum(abs_norm, 1.0)
+        # Optional: very high cap for L2 safety
+        denom = tl.maximum(denom, l2_norm / 1e6) 
         
         # Store result, casting back if necessary (Triton handles the storage cast)
         tl.store(x_ptr + offs[:, None] * n_dims + d_idx[None, :], x / denom[:, None], mask=mask[:, None])
@@ -720,7 +723,11 @@ def manifold_normalization(x, signature, eps=1e-6):
         norm_sq = torch.sum(x * x * metric_sq, dim=-1, keepdim=True)
         abs_norm = torch.sqrt(torch.abs(norm_sq) + eps)
         l2_norm = torch.sqrt(torch.sum(x * x, dim=-1, keepdim=True)) + eps
-        denom = torch.max(torch.max(abs_norm, l2_norm), torch.tensor(1.0, device=device))
+        # CGA-Safe Guard: Translation rotors have L2 norm > 1.0. 
+        # We only cap by the manifold norm (abs_norm) and a large safety margin for L2.
+        denom = torch.max(abs_norm, torch.tensor(1.0, device=device))
+        # Optional: very high cap for L2 safety
+        denom = torch.max(denom, l2_norm / 1e6)
         res = x / denom
     
     if is_numpy:
