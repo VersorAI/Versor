@@ -1,4 +1,5 @@
-# Versor: Geometric Transformer for Conformal Geometric Algebra
+# Versor: A Geometric Sequence Architecture
+[![Academic Paper](https://img.shields.io/badge/Paper-arXiv.2602.10195-B31B1B.svg)](https://arxiv.org/abs/2602.10195)
 
 A native Geometric Algebra Transformer architecture based on Conformal Geometric Algebra $\mathcal{C}l(4,1)$, implementing multivector representations and geometric products for deep learning.
 
@@ -24,22 +25,27 @@ The quickstart provides a minimal working example you can adapt to your own prob
 Versor/
 ├── quickstart.ipynb          # 👈 START HERE! Interactive tutorial
 ├── Model/                    # Core Versor architecture
-│   ├── __init__.py
 │   ├── core.py              # Geometric algebra operations (Cl(4,1))
 │   ├── layers.py            # VersorLinear, VersorAttention
-│   └── model.py             # VersorTransformer, VersorBlock
+│   ├── model.py             # VersorTransformer, VersorBlock
+│   ├── kinematics.py        # Robot kinematics and odometry
+│   └── physics.py           # Physical simulation and dynamics
+├── VersorFold/               # Multivector-based Protein Folding
+├── VersorRobotic/            # Geometric Control for Robotics
 ├── tasks/                    # Task-specific implementations
 │   ├── nlp/                 # Natural language processing tasks
 │   ├── vision/              # Computer vision tasks
 │   ├── nbody/               # N-body physics simulations
 │   ├── topology/            # Topological reasoning tasks
-│   ├── multimodal/          # Multimodal learning
+│   ├── robotics/            # Robotics benchmarks
+│   ├── real_world/          # Real-world benchmark suite (MD17, WikiText)
+│   ├── svp/                 # SVP and geometric reasoning
 │   ├── scripts/             # Analysis and benchmarking scripts
 │   └── figures/             # Generated plots and visualizations
 ├── library/                 # Utility functions and helpers
 ├── GAPU                     # Purpose-built silicon architecture               
-├── gatr/                     # GATr baseline implementation
-├── data/                     # Datasets
+├── gatr/                    # GATr baseline (requires manual clone)
+├── data/                    # Datasets
 ├── results/                  # Experimental results
 ├── requirements.txt          # Python dependencies
 └── kernel.py                # Custom CUDA kernels
@@ -49,13 +55,19 @@ Versor/
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/VersorAI/Versor
 cd Versor
 ```
 
 2. Install dependencies:
 ```bash
 pip install -r requirements.txt
+```
+
+3. Clone the GATr baseline:
+To run baseline comparisons, you must clone the GATr repository into the root:
+```bash
+git clone https://github.com/Qualcomm-AI-research/geometric-algebra-transformer gatr
 ```
 
 3. (Optional) For CUDA acceleration:
