@@ -47,7 +47,7 @@ def ga_to_matrix(x, mapping):
     # x: (..., 32)
     # mapping: (32, 4, 4, 2)
     # res: (..., 4, 4, 2)
-    return torch.einsum('...i, ijkr -> ...jkr', x, mapping)
+    return torch.einsum('...i, ijkr -> ...jkr', x.to(mapping.dtype), mapping)
 
 def matrix_to_ga(m, mapping):
     # m: (..., 4, 4, 2)
@@ -77,11 +77,12 @@ def complex_matmul_broadcast(A_real, B_real):
 def geometric_product_matrix(a, b):
     """Vectorized Geometric Product A * B using Matrix Representation."""
     device = a.device
-    mapping = get_cl41_matrix_mapping(device, a.dtype)
+    common_dtype = torch.promote_types(a.dtype, b.dtype)
+    mapping = get_cl41_matrix_mapping(device, common_dtype)
     
     # 1. Map to Matrix
-    ma = ga_to_matrix(a, mapping)
-    mb = ga_to_matrix(b, mapping)
+    ma = ga_to_matrix(a.to(common_dtype), mapping)
+    mb = ga_to_matrix(b.to(common_dtype), mapping)
     
     # 2. Complex MatMul
     mres = complex_matmul_broadcast(ma, mb)
