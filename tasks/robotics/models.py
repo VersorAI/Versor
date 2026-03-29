@@ -65,7 +65,14 @@ class VersorOdometry(nn.Module):
             u_t = u[:, t]
             
             # Map to manifold (Identity + epsilon)
-            delta_r = u_t.clone()
+            delta_b = u_t.clone()
+            
+            # Apply safe generator squashing to non-compact components (Rotor Clamping)
+            boost_mask = torch.zeros_like(delta_b)
+            boost_mask[..., [17, 18, 20, 24]] = 1.0
+            delta_b = (delta_b * (1 - boost_mask)) + 1.99 * torch.tanh(delta_b * boost_mask)
+            
+            delta_r = delta_b
             delta_r[..., 0] += 1.0 
             delta_r = manifold_normalization(delta_r, self.signature)
             
