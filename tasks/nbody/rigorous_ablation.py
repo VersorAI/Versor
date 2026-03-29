@@ -37,7 +37,14 @@ class VersorAblation(nn.Module):
             
             if self.use_recursive:
                 # Delta-Rotor generator
-                delta_r = u_t.clone()
+                delta_b = u_t.clone()
+                
+                # Apply safe generator squashing to non-compact components
+                boost_mask = torch.zeros_like(delta_b)
+                boost_mask[..., [17, 18, 20, 24]] = 1.0
+                delta_b = (delta_b * (1 - boost_mask)) + 1.99 * torch.tanh(delta_b * boost_mask)
+                
+                delta_r = delta_b
                 delta_r[..., 0] += 1.0 
                 if self.use_norm:
                     delta_r = algebra.manifold_normalization(delta_r, self.signature)
@@ -62,8 +69,9 @@ def train_and_eval(model, train_data, test_data, epochs=20, device='cpu'):
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
     loss_fn = nn.MSELoss()
     
-    X_train = train_data[:, :-1]
-    Y_train = train_data[:, 1:]
+    trajectory, mass = train_data
+    X_train = trajectory[:, :-1]
+    Y_train = trajectory[:, 1:]
     
     model.train()
     for _ in range(epochs):
@@ -78,8 +86,9 @@ def train_and_eval(model, train_data, test_data, epochs=20, device='cpu'):
             
     model.eval()
     with torch.no_grad():
-        X_test = test_data[:, :-1]
-        Y_test = test_data[:, 1:]
+        test_traj, test_mass = test_data
+        X_test = test_traj[:, :-1]
+        Y_test = test_traj[:, 1:]
         try:
             pred = model(X_test)
             mse = loss_fn(pred, Y_test).item()
