@@ -78,6 +78,19 @@ class RecursiveRotorAccumulator(nn.Module):
         B, S, D, ga_dim = x.shape
         
         delta_b = self.rotor_gen(x) 
+        
+        # Resolve Flaws 1 & 2: Clamp Non-Compact Generators
+        # Boost/Lorentz indices in Cl(4,1): e1e-, e2e-, e3e-, e+e-
+        # These are indices 17, 18, 20, 24 (Grade 2 components with positive square)
+        # Clamping to 1.99 ensures (2+B) is never singular and prevents L2 explosion.
+        boost_mask = torch.zeros(32, device=x.device)
+        boost_mask[[17, 18, 20, 24]] = 1.0
+        
+        # Apply tanh squashing to boost components
+        delta_b_compact = delta_b * (1.0 - boost_mask)
+        delta_b_boost = delta_b * boost_mask
+        delta_b = delta_b_compact + 1.99 * torch.tanh(delta_b_boost)
+        
         rotors = torch.zeros_like(delta_b)
         rotors[..., 0] = 1.0 # Identity rotor scalar part
         rotors = rotors + 0.5 * delta_b
