@@ -10,12 +10,13 @@ import os
 root_dir = os.getcwd()
 if root_dir not in sys.path:
     sys.path.append(root_dir)
-from Physics.data_gen import generate_gravity_data
-from Physics.models import StandardTransformer, VersorRotorRNN
+from tasks.nbody.data_gen import generate_gravity_data
+from tasks.nbody.models import StandardTransformer, VersorRotorRNN
 
 def train_on_normal_masses(model, device='cpu'):
     # Normal masses [0.5, 1.5] - already default in data_gen.py
-    train_data = generate_gravity_data(n_samples=200, n_steps=100, n_particles=5, device=device)
+    data_tuple = generate_gravity_data(n_samples=200, n_steps=100, n_particles=5, device=device)
+    train_data, _ = data_tuple
     X = train_data[:, :-1]
     Y = train_data[:, 1:]
     
@@ -76,7 +77,8 @@ def run_ood_test():
     train_on_normal_masses(versor, device)
     
     print("\nEvaluating on NORMAL masses...")
-    normal_data = generate_gravity_data(n_samples=50, n_steps=50, n_particles=5, device=device)
+    data_tuple = generate_gravity_data(n_samples=50, n_steps=50, n_particles=5, device=device)
+    normal_data, _ = data_tuple
     mse_trans_norm = eval_model(trans, normal_data)
     mse_versor_norm = eval_model(versor, normal_data)
     print(f"  Transformer: {mse_trans_norm:.6f}")
