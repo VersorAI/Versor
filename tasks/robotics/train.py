@@ -130,4 +130,4 @@ def train_robotics_benchmark(epochs=40, batch_size=32, n_steps=50):
     return audit_data
 
 if __name__ == "__main__":
-    train_robotics_benchmark(epochs=40)
+    train_robotics_benchmark(epochs=100)
