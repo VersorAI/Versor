@@ -17,11 +17,11 @@ import time
 sys.path.append('..')
 
 try:
+    from tasks.nbody.data_gen import generate_gravity_data
+    from tasks.nbody.models import StandardTransformer, VersorRotorRNN, GraphNetworkSimulator, HamiltonianNN, MultiChannelVersor, HamiltonianVersorNN, EquivariantGNN, MambaSimulator
+except ImportError:
     from data_gen import generate_gravity_data
     from models import StandardTransformer, VersorRotorRNN, GraphNetworkSimulator, HamiltonianNN, MultiChannelVersor, HamiltonianVersorNN, EquivariantGNN, MambaSimulator
-except ImportError:
-    from Physics.data_gen import generate_gravity_data
-    from Physics.models import StandardTransformer, VersorRotorRNN, GraphNetworkSimulator, HamiltonianNN, MultiChannelVersor, HamiltonianVersorNN, EquivariantGNN, MambaSimulator
 
 def compute_energy(data):
     pos = data[..., :3]
@@ -111,22 +111,25 @@ def run_single_seed(seed, device='cpu'):
     np.random.seed(seed)
     
     # Generate data
-    train_data = generate_gravity_data(n_samples=200, n_steps=100, device=device)
-    test_data = generate_gravity_data(n_samples=20, n_steps=100, device=device)
+    data_tuple_train = generate_gravity_data(n_samples=200, n_steps=100, device=device)
+    train_data, _ = data_tuple_train
+    
+    data_tuple_test = generate_gravity_data(n_samples=20, n_steps=100, device=device)
+    test_data, _ = data_tuple_test
     
     X_train = train_data[:, :-1]
     Y_train = train_data[:, 1:]
     
     # Models
     models = {
-        # "Transformer": StandardTransformer(n_particles=5).to(device),
-        # "Versor": VersorRotorRNN().to(device),
-        # "GNS": GraphNetworkSimulator(n_particles=5).to(device),
-        # "HNN": HamiltonianNN(n_particles=5).to(device),
+        "Transformer": StandardTransformer(n_particles=5).to(device),
+        "Versor": VersorRotorRNN().to(device),
+        "GNS": GraphNetworkSimulator(n_particles=5).to(device),
+        "HNN": HamiltonianNN(n_particles=5).to(device),
         # "Mamba": MambaSimulator(n_particles=5).to(device),
         "Versor-Multi": MultiChannelVersor(n_particles=5, n_channels=16, n_heads=4).to(device),
-        # "Ham-Versor": HamiltonianVersorNN(n_particles=5).to(device),
-        # "EGNN": EquivariantGNN(n_particles=5).to(device)
+        "Ham-Versor": HamiltonianVersorNN(n_particles=5).to(device),
+        "EGNN": EquivariantGNN(n_particles=5).to(device)
     }
     
     results = {}
