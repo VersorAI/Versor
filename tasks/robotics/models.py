@@ -68,9 +68,19 @@ class VersorOdometry(nn.Module):
             delta_b = u_t.clone()
             
             # Apply safe generator squashing to non-compact components (Rotor Clamping)
+            # Path A Fix: Squash the holistic norm of the non-compact subspace.
             boost_mask = torch.zeros_like(delta_b)
             boost_mask[..., [17, 18, 20, 24]] = 1.0
-            delta_b = (delta_b * (1 - boost_mask)) + 1.99 * torch.tanh(delta_b * boost_mask)
+            
+            delta_b_compact = delta_b * (1.0 - boost_mask)
+            delta_b_boost = delta_b * boost_mask
+            
+            # Calculate holistic norm of the boost subspace
+            boost_norm = torch.linalg.norm(delta_b_boost, dim=-1, keepdim=True) + 1e-6
+            # Apply squashing to the entire vector length
+            delta_b_boost_safe = delta_b_boost * (1.99 * torch.tanh(boost_norm) / boost_norm)
+            
+            delta_b = delta_b_compact + delta_b_boost_safe
             
             delta_r = delta_b
             delta_r[..., 0] += 1.0 
