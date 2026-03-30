@@ -83,13 +83,19 @@ class RecursiveRotorAccumulator(nn.Module):
         # Boost/Lorentz indices in Cl(4,1): e1e-, e2e-, e3e-, e+e-
         # These are indices 17, 18, 20, 24 (Grade 2 components with positive square)
         # Clamping to 1.99 ensures (2+B) is never singular and prevents L2 explosion.
+        # Path A Fix: Squash the holistic norm of the non-compact subspace.
         boost_mask = torch.zeros(32, device=x.device)
         boost_mask[[17, 18, 20, 24]] = 1.0
         
-        # Apply tanh squashing to boost components
         delta_b_compact = delta_b * (1.0 - boost_mask)
         delta_b_boost = delta_b * boost_mask
-        delta_b = delta_b_compact + 1.99 * torch.tanh(delta_b_boost)
+        
+        # Calculate holistic norm of the boost subspace
+        boost_norm = torch.linalg.norm(delta_b_boost, dim=-1, keepdim=True) + 1e-6
+        # Apply squashing to the entire vector length
+        delta_b_boost_safe = delta_b_boost * (1.99 * torch.tanh(boost_norm) / boost_norm)
+        
+        delta_b = delta_b_compact + delta_b_boost_safe
         
         rotors = torch.zeros_like(delta_b)
         rotors[..., 0] = 1.0 # Identity rotor scalar part
