@@ -39,10 +39,18 @@ class VersorAblation(nn.Module):
                 # Delta-Rotor generator
                 delta_b = u_t.clone()
                 
-                # Apply safe generator squashing to non-compact components
+                # Apply safe generator squashing to non-compact components (Path A Fix)
                 boost_mask = torch.zeros_like(delta_b)
                 boost_mask[..., [17, 18, 20, 24]] = 1.0
-                delta_b = (delta_b * (1 - boost_mask)) + 1.99 * torch.tanh(delta_b * boost_mask)
+                
+                delta_b_compact = delta_b * (1.0 - boost_mask)
+                delta_b_boost = delta_b * boost_mask
+                
+                # Holistic norm squashing
+                boost_norm = torch.linalg.norm(delta_b_boost, dim=-1, keepdim=True) + 1e-6
+                delta_b_boost_safe = delta_b_boost * (1.99 * torch.tanh(boost_norm) / boost_norm)
+                
+                delta_b = delta_b_compact + delta_b_boost_safe
                 
                 delta_r = delta_b
                 delta_r[..., 0] += 1.0 
