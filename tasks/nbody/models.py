@@ -89,6 +89,21 @@ class VersorRotorRNN(nn.Module):
         # (B, S, N, D) -> (B, S, N, Hidden, ga_dim)
         x_embs = self.proj_in(x).reshape(B, S, N, self.hidden_channels, self.ga_dim)
         
+        # Apply Safe Generator Squashing to shield against singularities (Path A Fix)
+        # Boost indices: 17, 18, 20, 24
+        if self.ga_dim == 32:
+            boost_mask = torch.zeros(32, device=x.device)
+            boost_mask[[17, 18, 20, 24]] = 1.0
+            
+            x_compact = x_embs * (1.0 - boost_mask)
+            x_boost = x_embs * boost_mask
+            
+            # Use holistic norm squashing instead of element-wise tanh
+            boost_norm = torch.linalg.norm(x_boost, dim=-1, keepdim=True) + 1e-6
+            x_boost_safe = x_boost * (1.99 * torch.tanh(boost_norm) / boost_norm)
+            
+            x_embs = x_compact + x_boost_safe
+
         if HAS_CPP_CORE and self.ga_dim == 32: # C++ core only supports Cl(4,1) bitmasked
             # C++ Core Implementation (Recursive Rotor Accumulator)
             # Parallelized O(L) scan on CPU/extension
