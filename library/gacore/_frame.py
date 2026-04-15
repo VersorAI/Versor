@@ -5,7 +5,7 @@ import numpy as np
 
 from ._mvarray import MVArray
 from ._multivector import MultiVector
-from .operator import op
+from .ga_ops import op
 from . import _settings
 
 
