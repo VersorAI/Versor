@@ -140,17 +140,30 @@ def normalize_cl41(A, eps=1e-8):
     prevent 'Null-Vector Explosion' where lanes grow massive while 
     the scalar product stays small.
     """
-    # 1. Standard Geometric Norm (for manifold projection)
-    norm_sq = inner_cl41(A, A)
-    g_norm = torch.sqrt(torch.abs(norm_sq) + eps)
+    # Rigorous Clifford Norm for Cl(4,1) signature [1,1,1,1,-1]
+    # Scalar part of (A * ~A) corresponds to product of basis squares
+    sig32 = torch.ones(32, device=A.device, dtype=A.dtype)
+    sig_arr = [1.0, 1.0, 1.0, 1.0, -1.0]
+    for i in range(32):
+        for b in range(5):
+            if (i >> b) & 1:
+                sig32[i] *= sig_arr[b]
     
-    # 2. Frobenius Norm (for numerical lane stability)
-    f_norm = torch.norm(A, p=2, dim=-1, keepdim=True) + eps
+    norm_sq = torch.sum(A * A * sig32, dim=-1, keepdim=True)
+    denom = torch.sqrt(torch.abs(norm_sq) + eps)
     
-    # Use the max of the two to ensure stability
-    denom = torch.max(g_norm.unsqueeze(-1), f_norm / 4.0).clamp(min=1.0)
+    # Stability Fallback
+    safe_denom = torch.where(denom < 1e-6, torch.ones_like(denom), denom)
+    normalized = A / safe_denom
     
-    return A / denom
+    # Identity default for near-null states
+    is_small = (denom < 1e-4)
+    if is_small.any():
+        identity = torch.zeros_like(A)
+        identity[..., 0] = 1.0
+        normalized = torch.where(is_small, identity, normalized)
+        
+    return normalized
 
 
 def conformal_lift(spins):
