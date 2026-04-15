@@ -177,18 +177,13 @@ if HAS_TRITON:
         sig = tl.load(sig_ptr + d_idx).to(tl.float32)
         x = tl.load(x_ptr + offs[:, None] * n_dims + d_idx[None, :], mask=mask[:, None]).to(tl.float32)
         
-        # Manifold norm calculation in full precision
-        norm_sq = tl.sum(x * x * sig[None, :], axis=1)
-        abs_norm = tl.sqrt(tl.abs(norm_sq) + eps)
-        l2_norm = tl.sqrt(tl.sum(x * x, axis=1)) + eps
+        # Manifold norm calculation: Clifford Norm sqrt(|<A * ~A>_0|)
+        # The scalar part <A * ~A>_0 is sum(a_i^2 * sign(e_i * ~e_i))
+        # In Cl(p,q), sign(e_i * ~e_i) is the metric sign of the blade.
+        norm_sq_abs = tl.abs(tl.sum(x * x * sig[None, :], axis=1))
+        denom = tl.sqrt(norm_sq_abs + eps)
         
-        # CGA-Safe Guard: Translation rotors have L2 norm > 1.0. 
-        # We only cap by the manifold norm (abs_norm) and a large safety margin for L2.
-        denom = tl.maximum(abs_norm, 1.0)
-        # Optional: very high cap for L2 safety
-        denom = tl.maximum(denom, l2_norm / 1e6) 
-        
-        # Store result, casting back if necessary (Triton handles the storage cast)
+        # Store result
         tl.store(x_ptr + offs[:, None] * n_dims + d_idx[None, :], x / denom[:, None], mask=mask[:, None])
 
     def geometric_linear_triton_32(x, weight):
@@ -441,10 +436,8 @@ if HAS_MLX:
                      sig_np[i] *= val
         
         sig = mx.array(sig_np)
-        norm_sq = mx.sum(x * x * sig, axis=-1, keepdims=True)
-        abs_norm = mx.sqrt(mx.abs(norm_sq) + eps)
-        l2_norm = mx.sqrt(mx.sum(x * x, axis=-1, keepdims=True)) + eps
-        denom = mx.maximum(mx.maximum(abs_norm, l2_norm), 1.0)
+        norm_sq_abs = mx.abs(mx.sum(x * x * sig, axis=-1, keepdims=True))
+        denom = mx.sqrt(norm_sq_abs + eps)
         res = x / denom
         return np.array(res) if is_numpy else res
 
@@ -715,20 +708,33 @@ def manifold_normalization(x, signature, eps=1e-6):
     else:
         # Standard CPU implementation
         device = x.device
+        D = len(signature)
         n_dims = x.shape[-1]
-        S = get_sign_matrix(signature, "numpy")
-        S = torch.from_numpy(S).to(device)
-        metric_sq = S[:, 0]
         
-        norm_sq = torch.sum(x * x * metric_sq, dim=-1, keepdim=True)
-        abs_norm = torch.sqrt(torch.abs(norm_sq) + eps)
-        l2_norm = torch.sqrt(torch.sum(x * x, dim=-1, keepdim=True)) + eps
-        # CGA-Safe Guard: Translation rotors have L2 norm > 1.0. 
-        # We only cap by the manifold norm (abs_norm) and a large safety margin for L2.
-        denom = torch.max(abs_norm, torch.tensor(1.0, device=device))
-        # Optional: very high cap for L2 safety
-        denom = torch.max(denom, l2_norm / 1e6)
-        res = x / denom
+        # Calculate Clifford Metric Sign (squares of basis elements * reverse signs)
+        # scalar part of (A * ~A) is simply the product of metric signatures of basis vectors
+        sig_arr = np.array(signature)
+        sig32 = np.ones(n_dims)
+        for i in range(n_dims):
+            for b in range(D):
+                if (i >> b) & 1:
+                    sig32[i] *= sig_arr[b]
+        
+        cl_metric_sig = torch.tensor(sig32, device=device, dtype=x.dtype)
+        
+        norm_sq = torch.sum(x * x * cl_metric_sig, dim=-1, keepdim=True)
+        denom = torch.sqrt(torch.abs(norm_sq) + eps)
+        
+        # Stability fix: Use a masked denominator to prevent NaN gradients in the non-selected branch
+        safe_denom = torch.where(denom < 1e-6, torch.ones_like(denom), denom)
+        normalized = x / safe_denom
+        
+        is_small = (denom < 1e-4) # Slightly larger threshold for safety
+        if is_small.any():
+            identity = torch.zeros_like(x)
+            identity[..., 0] = 1.0 # Identity rotor
+            normalized = torch.where(is_small, identity, normalized)
+        res = normalized
     
     if is_numpy:
         return res.detach().cpu().numpy()
