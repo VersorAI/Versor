@@ -36,12 +36,30 @@ def get_cl41_matrix_mapping(device, dtype=torch.float32):
                 mat = mat @ e[b]
         m_basis[i] = mat
         
+    # Compute Basis Square Signs (Metric)
+    # i-th basis blade squares to +/- 1.
+    # In GA: e_i^2 = sign. 
+    # For matrix: M_i^2 = sign * I.
+    sig_np = np.zeros(32, dtype=np.float32)
+    for i in range(32):
+        # We can just check the matrix property M_i @ M_i
+        res = m_basis[i] @ m_basis[i]
+        # Check if it is +I or -I
+        if np.allclose(res, np.eye(4)):
+            sig_np[i] = 1.0
+        elif np.allclose(res, -np.eye(4)):
+            sig_np[i] = -1.0
+        else:
+            # Should not happen for Cl(4,1) unit bases
+            sig_np[i] = 0.0
+
     # Convert to real format (32, 4, 4, 2)
     mapping_real = np.stack([m_basis.real, m_basis.imag], axis=-1).astype(np.float32)
     mapping_torch = torch.from_numpy(mapping_real).to(device=device, dtype=dtype)
+    sig_torch = torch.from_numpy(sig_np).to(device=device, dtype=dtype)
     
-    _MAPPING_CACHE[key] = mapping_torch
-    return mapping_torch
+    _MAPPING_CACHE[key] = (mapping_torch, sig_torch)
+    return mapping_torch, sig_torch
 
 def ga_to_matrix(x, mapping):
     # x: (..., 32)
@@ -49,19 +67,14 @@ def ga_to_matrix(x, mapping):
     # res: (..., 4, 4, 2)
     return torch.einsum('...i, ijkr -> ...jkr', x.to(mapping.dtype), mapping)
 
-def matrix_to_ga(m, mapping):
+def matrix_to_ga(m, mapping, sig):
     # m: (..., 4, 4, 2)
     # mapping: (32, 4, 4, 2)
-    # Basis is orthogonal under trace inner product: Re(Tr(A B*))
-    # For our basis: a_i = 1/4 * Re(Tr(M * M_i_inv))
-    # Since M_i are unitary and M_i^2 = +/- 1, M_i_inv = +/- M_i
-    # e1-e4 square to 1, e5 squares to -1.
-    
-    # Precompute inverse/signatures for back-projection
-    # Actually, we can just use einsum and find the projection
-    # Because it's an isomorphism, M = sum a_i M_i is unique.
-    # We can solve it as a least-squares or just dot product.
-    # Result: (..., 32)
+    # sig: (32,) [Used in normalization, not in basic projection]
+    # Basis is orthogonal under complex inner product: Re(Tr(M * M_i_dagger)) / 4
+    # Our einsum calculates: sum(m_real * mapping_real + m_imag * mapping_imag)
+    # which is exactly Re(Tr(M * M_i_dagger)).
+    # Thus a_i = Re(Tr(M * M_i_dagger)) / 4.
     return torch.einsum('...jkr, ijkr -> ...i', m, mapping) / 4.0
 
 def complex_matmul_broadcast(A_real, B_real):
@@ -78,7 +91,7 @@ def geometric_product_matrix(a, b):
     """Vectorized Geometric Product A * B using Matrix Representation."""
     device = a.device
     common_dtype = torch.promote_types(a.dtype, b.dtype)
-    mapping = get_cl41_matrix_mapping(device, common_dtype)
+    mapping, sig = get_cl41_matrix_mapping(device, common_dtype)
     
     # 1. Map to Matrix
     ma = ga_to_matrix(a.to(common_dtype), mapping)
@@ -88,7 +101,7 @@ def geometric_product_matrix(a, b):
     mres = complex_matmul_broadcast(ma, mb)
     
     # 3. Map back
-    return matrix_to_ga(mres, mapping)
+    return matrix_to_ga(mres, mapping, sig)
 
 def complex_matmul_fast(A_real, B_real):
     # A, B are (M, K, 2) complex
@@ -108,41 +121,39 @@ def matrix_geometric_product(ma, mb):
 def matrix_manifold_normalization(m, eps=1e-6):
     """
     Project multivectors onto the unit manifold while in matrix space.
-    Equivalent to normalize_cl41 in GA space.
+    Strictly enforces <A * ~A>_0 = 1.
     """
-    # 1. Standard Geometric Norm: ||A||² = <A * ~A>_0
-    # In M4(C), <A * B>_0 = Re(Tr(A @ B)) / 4
-    # Reverse ~A in matrix space is M^\dagger (adjoint) for some bases, 
-    # but for Cl(4,1) with our mapping, it's specific.
-    # However, for Sp(4,1) rotors, we mainly need to preserve det(M) = 1 or similar.
-    # A more robust way in matrix space:
-    # normalize such that Re(Tr(M @ M_rev)) = 4
+    # 1. Extract the scalar part of the product with the reverse.
+    # For unitary representations of Spin(4,1), the adjoint matrix is usually 
+    # related to the reverse. However, we can just project to GA space and back, 
+    # but that's slow.
+    # Optimized: <A * ~A>_0 = sum(a_i^2 * sign(e_i * ~e_i))
+    # We use the GA coefficients directly for the norm calculation.
+    device = m.device
+    mapping, sig = get_cl41_matrix_mapping(device, m.dtype)
     
-    # Simpler: Projection back to Sp(4,1) can be approximate:
-    # m / sqrt(|det(m)|) if it were a simple rotation.
-    # To match normalize_cl41 exactly, we use the trace of product with identity representation.
-    # But wait, we can just use the Frobenius norm of the matrix as a proxy for stability.
+    # Map back to GA to get coefficients
+    a = matrix_to_ga(m, mapping, sig)
     
-    # For RRA, we'll use a trace-based norm for exactness:
-    # <A*~A>_0 is the first component of the GA vector.
-    # We can extract it via m @ mapping.transpose(...)
-    # But simpler: mapping[0] is Identity. 
-    # So <A*~B>_0 = Re(Tr(MA @ MB_rev)) / 4
+    # Clifford Norm Sq: sum(a_i^2 * metric_sign[i])
+    # For Cl(4,1), metric_sign is exactly the sign of e_i * ~e_i.
+    # Note: ~e_i = reverse(e_i). sign(e_i * ~e_i) is S[i, 0] in kernel.py.
+    # Let's derive it from our sig (basis square signs).
+    # reverse(e_i) = (-1)^(g(g-1)/2) e_i. 
+    # So e_i * ~e_i = (-1)^(g(g-1)/2) e_i^2.
     
-    # For now, let's use the Frobenius norm / 4 as a stable proxy, 
-    # or just use ga_to_matrix(normalize_cl41(matrix_to_ga(m))) if we want identity.
-    # To be "Fused", we should avoid going back.
+    basis_indices = np.arange(32)
+    grades = np.array([bin(i).count('1') for i in basis_indices])
+    rev_signs = ((-1)**(grades * (grades - 1) // 2)).astype(np.float32)
+    rev_signs_torch = torch.from_numpy(rev_signs).to(device)
     
-    # Trace-based scalar part: <M>_0 = Re(Tr(M)) / 4
-    # Since Mapping[0] is Identity.
-    trace_real = m[..., 0, 0, 0] + m[..., 1, 1, 0] + m[..., 2, 2, 0] + m[..., 3, 3, 0]
-    scalar_part = trace_real / 4.0
+    # Full metric sig including revision
+    cl_metric_sig = sig * rev_signs_torch
     
-    # This is <M>_0. We need <M * ~M>_0.
-    # Let's just use Frobenius norm for RRA stability, matching the 'f_norm' in normalize_cl41.
-    f_norm = torch.sqrt(torch.sum(m ** 2, dim=(-1, -2, -3)) / 4.0 + eps)
+    norm_sq_abs = torch.abs(torch.sum(a * a * cl_metric_sig, dim=-1, keepdim=True))
+    denom = torch.sqrt(norm_sq_abs + eps)
     
-    return m / f_norm[..., None, None, None]
+    return m / denom[..., None, None]
 
 def geometric_linear_layer_matrix(x, weight):
     """
@@ -152,7 +163,7 @@ def geometric_linear_layer_matrix(x, weight):
     - Hardware Utilization: Converts sparse-ish GA to massive dense GEMM.
     """
     device = x.device
-    mapping = get_cl41_matrix_mapping(device, x.dtype)
+    mapping, sig = get_cl41_matrix_mapping(device, x.dtype)
     
     M_orig_shape = x.shape[:-2]
     K = x.shape[-2]
@@ -178,6 +189,6 @@ def geometric_linear_layer_matrix(x, weight):
     
     # 4. Map Back
     y_mat = y_gemm.reshape(M, 4, N, 4, 2).permute(0, 2, 1, 3, 4) # (M, N, 4, 4, 2)
-    y_ga = matrix_to_ga(y_mat, mapping) # (M, N, 32)
+    y_ga = matrix_to_ga(y_mat, mapping, sig) # (M, N, 32)
     
     return y_ga.view(*M_orig_shape, N, 32)
