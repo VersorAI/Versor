@@ -31,7 +31,9 @@ def compute_energy(data, mass, G=1.0):
         for j in range(i + 1, N):
             diff = pos[..., i, :] - pos[..., j, :]
             dist = torch.norm(diff, dim=-1) + 1e-3
-            pe -= (G * mass[:, i, 0] * mass[:, j, 0]) / dist
+            m1 = mass[:, i, 0].view(-1, 1)
+            m2 = mass[:, j, 0].view(-1, 1)
+            pe -= (G * m1 * m2) / dist.view(-1, 1)
             
     return ke + pe
 

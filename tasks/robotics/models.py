@@ -2,14 +2,14 @@ import torch
 import torch.nn as nn
 import sys
 import os
+import numpy as np
 
 # Append parent directory and library directory to system path
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_dir)
 sys.path.append(os.path.join(root_dir, "library"))
 
-from gacore.kernel import manifold_normalization
-from tasks.nbody import algebra # Reusing the GA kernels from nbody task
+from gacore.kernel import manifold_normalization, geometric_product
 
 class BaselineGRU(nn.Module):
     """
@@ -59,7 +59,6 @@ class VersorOdometry(nn.Module):
         outputs = []
         
         # Recursive integration (RRA)
-        # Using the Python fallback logic for visibility in this benchmark
         for t in range(S):
             # Incremental rotor generator
             u_t = u[:, t]
@@ -68,16 +67,13 @@ class VersorOdometry(nn.Module):
             delta_b = u_t.clone()
             
             # Apply safe generator squashing to non-compact components (Rotor Clamping)
-            # Path A Fix: Squash the holistic norm of the non-compact subspace.
             boost_mask = torch.zeros_like(delta_b)
             boost_mask[..., [17, 18, 20, 24]] = 1.0
             
             delta_b_compact = delta_b * (1.0 - boost_mask)
             delta_b_boost = delta_b * boost_mask
             
-            # Calculate holistic norm of the boost subspace
             boost_norm = torch.linalg.norm(delta_b_boost, dim=-1, keepdim=True) + 1e-6
-            # Apply squashing to the entire vector length
             delta_b_boost_safe = delta_b_boost * (1.99 * torch.tanh(boost_norm) / boost_norm)
             
             delta_b = delta_b_compact + delta_b_boost_safe
@@ -87,12 +83,10 @@ class VersorOdometry(nn.Module):
             delta_r = manifold_normalization(delta_r, self.signature)
             
             # Group action: Multiplicative accumulation
-            # psi_{t+1} = delta_r * psi_t
-            psi = algebra.geometric_product(delta_r, psi)
+            psi = geometric_product(delta_r, psi, self.signature, method='bitmasked')
             psi = manifold_normalization(psi, self.signature)
             
             # Project high-dim hidden state to target 32D rotor 
-            # and project back to manifold
             out_rotor = self.proj_out(psi.reshape(B, -1))
             out_rotor = manifold_normalization(out_rotor, self.signature)
             outputs.append(out_rotor)
@@ -101,15 +95,20 @@ class VersorOdometry(nn.Module):
 
 def measure_manifold_drift(rotor_batch):
     """
-    Measures how far the predicted rotors are from a valid Spin(4,1) element.
-    In Cl(4,1), rotors satisfy R * reverse(R) = 1.
+    Rigorously measure how far predicted rotors are from the Spin manifold.
+    In Cl(4,1), valid rotors satisfy R * reverse(R) = 1.
     """
-    # For SO(3) sub-group, this measures deviation from orthogonality
-    # Here we'll use a simplified check on the scalar part of (R * rev(R))
-    # This is simplified for the PoC.
     B, S, D = rotor_batch.shape
-    # (Simplified metric for this script)
-    # We want the norm of the multivector to stay near 1
-    norms = torch.norm(rotor_batch, dim=-1) # (B, S)
-    drift = torch.abs(norms - 1.0).mean()
+    # Sign mapping for Cl(4,1) squares
+    sig_arr = np.array([1, 1, 1, 1, -1])
+    sig32 = np.ones(D)
+    for i in range(D):
+        for b in range(5):
+            if (i >> b) & 1:
+                sig32[i] *= sig_arr[b]
+    cl_metric_sig = torch.tensor(sig32, device=rotor_batch.device, dtype=rotor_batch.dtype)
+    
+    # Square norm 
+    norm_sq = torch.sum(rotor_batch * rotor_batch * cl_metric_sig, dim=-1)
+    drift = torch.abs(torch.sqrt(torch.abs(norm_sq) + 1e-6) - 1.0).mean()
     return drift.item()

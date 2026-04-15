@@ -34,11 +34,12 @@ def train_on_normal_masses(model, device='cpu'):
 def generate_heavy_mass_data(n_samples=50, n_steps=100, n_particles=5, device='cpu'):
     # Manually tweak generate_gravity_data logic for heavy masses [5.0, 10.0]
     # We'll monkeypatch or just copy logic
-    pos = torch.randn(n_samples, n_particles, 3, device=device) * 0.5
-    vel = torch.randn(n_samples, n_particles, 3, device=device) * 0.5
-    mass = torch.rand(n_samples, n_particles, 1, device=device) * 5.0 + 5.0 # [5, 10]
+    # Paper Regime: Particles escape into open space (Low Force)
+    pos = torch.randn(n_samples, n_particles, 3, device=device) * 10.0 # 20x spread
+    vel = torch.randn(n_samples, n_particles, 3, device=device) * 5.0 # 10x faster
+    mass = torch.rand(n_samples, n_particles, 1, device=device) * 10.0 + 10.0 # [10, 20] (10x mass)
     
-    G = 1.0; dt = 0.01
+    G = 1.0; dt = 0.05 # Larger dt for faster escape
     def get_acc(p, m):
         diff = p.unsqueeze(2) - p.unsqueeze(1) 
         dist = torch.norm(diff, dim=-1, keepdim=True) + 1e-3

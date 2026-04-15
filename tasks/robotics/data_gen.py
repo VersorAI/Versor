@@ -85,3 +85,5 @@ if __name__ == "__main__":
     inputs, targets = generate_odometry_data(n_samples=5, n_steps=20)
     print(f"Inputs: {inputs.shape}")
     print(f"Targets: {targets.shape}")
+    print(f"Any NaNs in targets? {torch.isnan(targets).any().item()}")
+    print(f"Target norm (Clifford) example: {torch.norm(targets[0, 0]).item()}")

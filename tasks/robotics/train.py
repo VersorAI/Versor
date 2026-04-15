@@ -34,8 +34,19 @@ def train_robotics_benchmark(epochs=40, batch_size=32, n_steps=50):
     baseline = BaselineGRU().to(device)
     versor = VersorOdometry().to(device)
     
+    # Initialize weights to be small for stability
+    for m in [baseline, versor]:
+        for p in m.parameters():
+            if p.dim() > 1:
+                nn.init.normal_(p, std=0.01)
+            else:
+                nn.init.constant_(p, 0.0)
+    
     models = {"GRU_Baseline": baseline, "Versor_RRA": versor}
-    optimizers = {name: optim.Adam(m.parameters(), lr=1e-3) for name, m in models.items()}
+    optimizers = {
+        "GRU_Baseline": optim.Adam(models["GRU_Baseline"].parameters(), lr=1e-3),
+        "Versor_RRA": optim.Adam(models["Versor_RRA"].parameters(), lr=1e-4)
+    }
     loss_fn = nn.MSELoss()
     
     # 3. Training Loop
@@ -59,6 +70,7 @@ def train_robotics_benchmark(epochs=40, batch_size=32, n_steps=50):
                 pred = model(x)
                 loss = loss_fn(pred, y)
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 
                 epoch_loss += loss.item()

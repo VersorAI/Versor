@@ -1,0 +1,17 @@
+{
+  "empirical_sanity_check": [
+    {
+      "Condition": "Baseline (Transformer)",
+      "Converged_MSE": 0.544407308101654
+    },
+    {
+      "Condition": "Strip LayerNorm",
+      "Converged_MSE": 0.5969592332839966
+    },
+    {
+      "Condition": "Full Versor",
+      "Converged_MSE": 0.513346254825592
+    }
+  ],
+  "status": "VALIDATED_EMPIRICALLY"
+}

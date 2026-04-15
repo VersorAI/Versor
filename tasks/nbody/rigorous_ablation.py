@@ -8,8 +8,12 @@ import os
 import time
 
 # Add paths
-from tasks.nbody.data_gen import generate_gravity_data
-from tasks.nbody.models import StandardTransformer
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
+
+from data_gen import generate_gravity_data
+from models import StandardTransformer
 import gacore.kernel as algebra
 
 class VersorAblation(nn.Module):
