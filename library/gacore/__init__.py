@@ -97,8 +97,8 @@ from . import _numba_utils
 from ._settings import pretty, ugly, eps, print_precision  # noqa: F401
 import gacore.taylor_expansions as taylor_expansions
 
-# For backwards-compatibility. New code should import directly from `gacore.operator`
-from .operator import gp, op, ip  # noqa: F401
+# For backwards-compatibility. New code should import directly from `gacore.ga_ops`
+from .ga_ops import gp, op, ip  # noqa: F401
 
 try:
     NUMBA_DISABLE_PARALLEL = os.environ['NUMBA_DISABLE_PARALLEL']
