@@ -36,7 +36,6 @@ def benchmark_latency():
     
     # Standard bitmasked configurations
     for name, config in model_configs.items():
-        if name == "Ham-Versor": continue # Too slow for some CPU loops
         model = config().to(device)
         model.eval()
         x = torch.randn(1, L, N, 6).to(device)
