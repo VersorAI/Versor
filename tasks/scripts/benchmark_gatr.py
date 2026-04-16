@@ -69,7 +69,8 @@ def benchmark_gatr_lift():
         
     except Exception as e:
         print(f"Standard Failed: {e}")
-        std_time = 1.0; std_mem = 1000.0
+        std_time = float('inf')
+        std_mem = float('inf')
 
     # 2. Optimized Kernel
     print("\n--- Benchmarking Optimized Kernel ---")
@@ -83,8 +84,6 @@ def benchmark_gatr_lift():
     
     opt_time = (end_time - start_time)
     opt_mem = max_mem - start_mem
-    # If delta is 0/neg due to GC, assume small const
-    if opt_mem <= 0: opt_mem = 0.1 
     
     print(f"Optimized Time: {opt_time*1000:.2f} ms")
     print(f"Optimized Memory Delta: {opt_mem:.2f} MB")
