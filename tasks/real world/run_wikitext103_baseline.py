@@ -51,14 +51,14 @@ class StandardTransformerNLP(nn.Module):
 def train_baseline():
     print(f"Loading WikiText-103 (Standard Baseline) from {DATA_PATH}...")
     with open(DATA_PATH, "r", encoding="utf-8") as f:
-        data_text = f.read(5_000_000) # Same 5MB Subset
+        data_text = f.read()
     
     chars = sorted(list(set(data_text)))
     vocab_size = len(chars)
     char_to_idx = {ch: i for i, ch in enumerate(chars)}
     
     data_tensor = torch.tensor([char_to_idx[c] for c in data_text], dtype=torch.long)
-    split_idx = int(0.9 * len(data_tensor))
+    split_idx = int(0.95 * len(data_tensor)) # Match split percentage of real
     train_data = data_tensor[:split_idx]
     val_data = data_tensor[split_idx:]
     
