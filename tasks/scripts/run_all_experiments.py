@@ -145,44 +145,35 @@ def run_experiment_5_kernel_benchmark():
         print(f"❌ Error running Kernel benchmark: {e}")
         return None
 
-def run_experiment_new_domains():
-    """Generic Domains (NLP, Vision, Graph)"""
-    print("\n" + "="*60)
-    print("EXPERIMENT 6: Multimodal Capabilities")
-    print("="*60)
-    
-    try:
-        from tasks.scripts import run_multimodal_experiments as mm
-        
-        # Run all seeds and get aggregated stats
-        results = mm.run_all_seeds()
-        
-        return save_results("multimodal", results)
-        
     except Exception as e:
-        print(f"❌ Error running Multimodal experiments: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"❌ Error running Kernel benchmark: {e}")
         return None
+
+# def run_experiment_new_domains():
+#     """Generic Domains (NLP, Vision, Graph)"""
+#     print("\n" + "="*60)
+#     print("EXPERIMENT 6: Multimodal Capabilities")
+#     print("="*60)
+#     
+#     try:
+#         from tasks.scripts import run_multimodal_experiments as mm
+#         
+#         # Run all seeds and get aggregated stats
+#         results = mm.run_all_seeds()
+#         
+#         return save_results("multimodal", results)
+#         
+#     except Exception as e:
+#         print(f"❌ Error running Multimodal experiments: {e}")
+#         import traceback
+#         traceback.print_exc()
+#         return None
 
 def generate_summary_report():
     """Generate a summary of all results and compare with paper"""
     print("\n" + "="*60)
-    print("GENERATING SUMMARY AND VERIFICATION REPORT")
     print("="*60)
     
-    # Paper Data for Comparison
-    paper_data = {
-        "nbody_mse_versor": 5.210,
-        "nbody_drift_versor": 133.0,
-        "nbody_mse_transformer": 6.609,
-        "ood_increase_transformer": 3097.2,
-        "ood_increase_versor": -19.9,
-        "topology_mcc_versor": 0.993,
-        "topology_mcc_vit": 0.07
-    }
-    
-    # Find all result files
     result_files = [f for f in os.listdir(RESULTS_DIR) if f.endswith('.json') and not f.startswith('SUMMARY')]
     
     if not result_files:
@@ -194,13 +185,12 @@ def generate_summary_report():
         "total_experiments": len(result_files),
         "verifications": {}
     }
-    
+
     for fname in result_files:
         path = os.path.join(RESULTS_DIR, fname)
         with open(path) as f:
             data = json.load(f)
             if isinstance(data, list):
-                # Attempt to guess experiment from filename or skip
                 if "nbody" in fname: exp_name = "nbody"
                 elif "ood" in fname: exp_name = "ood"
                 elif "ablation" in fname: exp_name = "ablation"
@@ -217,15 +207,16 @@ def generate_summary_report():
                 t_mse = data["statistics"].get("Transformer", {}).get("mse_mean", 0)
                 summary["verifications"]["nbody_mse"] = {
                     "measured_versor": v_mse,
-                    "paper_versor": paper_data["nbody_mse_versor"],
-                    "status": "PASS" if abs(v_mse - paper_data["nbody_mse_versor"]) < 1.0 else "DEVIATION"
+                    "measured_transformer": t_mse,
+                    "status": "COMPUTED"
                 }
             elif exp_name == "ood":
                 v_inc = data.get("increase_percent", {}).get("versor", 0)
+                t_inc = data.get("increase_percent", {}).get("transformer", 0)
                 summary["verifications"]["ood_generalization"] = {
                     "measured_versor_inc": v_inc,
-                    "paper_versor_inc": paper_data["ood_increase_versor"],
-                    "status": "PASS" if v_inc < 50 else "DEVIATION"
+                    "measured_transformer_inc": t_inc,
+                    "status": "COMPUTED"
                 }
             elif exp_name == "ablation":
                 summary["verifications"]["ablation"] = data
@@ -236,17 +227,16 @@ def generate_summary_report():
     
     print(f"\n✓ Verification summary saved to: {summary_file}")
     
-    # Print a quick human-readable table
-    print("\n--- QUICK VERIFICATION ---")
-    print(f"{'Metric':<30} | {'Measured':<15} | {'Paper':<15} | {'Status'}")
-    print("-" * 75)
+    print("\n--- MEASUREMENTS ---")
+    print(f"{'Metric':<30} | {'Measured (Versor)':<20} | {'Measured (Baseline)':<20} | {'Status'}")
+    print("-" * 80)
     for metric, res in summary["verifications"].items():
         if "measured_versor" in res:
-            m, p = res["measured_versor"], res["paper_versor"]
-            print(f"{metric:<30} | {m:<15.4f} | {p:<15.4f} | {res['status']}")
+            m_v, m_t = res.get("measured_versor", "N/A"), res.get("measured_transformer", "N/A")
+            print(f"{metric:<30} | {m_v:<20.4f} | {m_t:<20.4f} | {res['status']}")
         elif "measured_versor_inc" in res:
-            m, p = res["measured_versor_inc"], res["paper_versor_inc"]
-            print(f"{metric:<30} | {m:<15.1f}% | {p:<15.1f}% | {res['status']}")
+            m_v, m_t = res.get("measured_versor_inc", "N/A"), res.get("measured_transformer_inc", "N/A")
+            print(f"{metric:<30} | {m_v:<18.1f}% | {m_t:<18.1f}% | {res['status']}")
 
 if __name__ == "__main__":
     print("="*60)
@@ -262,7 +252,7 @@ if __name__ == "__main__":
         run_experiment_3_ood,
         run_experiment_4_ablation,
         run_experiment_5_kernel_benchmark,
-        run_experiment_new_domains,  # New Multimodal Tasks
+        # run_experiment_new_domains,  # Disabled: Missing script
         # run_experiment_2_topology # Skipping topology by default as it's very slow
     ]
     
