@@ -157,22 +157,6 @@ Key steps:
 4. Train with standard PyTorch training loop
 5. Evaluate and visualize results
 
-## Citation
-
-If you use this code in your research, please cite:
-
-```bibtex
-@article{Huy:2026wcd,
-    author = "Huy, Truong Minh and Hirst, Edward",
-    title = "{Versor: A Geometric Sequence Architecture}",
-    eprint = "2602.10195",
-    archivePrefix = "arXiv",
-    primaryClass = "cs.LG",
-    month = "2",
-    year = "2026"
-}
-```
-
 ## Contributing
 
 Contributions are welcome! Please:
