@@ -182,8 +182,4 @@ Browse `tasks/` for domain-specific implementations
 
 **Convergence issues**: Try adjusting learning rate or using gradient clipping
 
-## 📧 Contact
-
-For questions or issues, please open a GitHub issue or contact the authors.
-
 ---
